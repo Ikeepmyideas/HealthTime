@@ -4,7 +4,7 @@ from dotenv import load_dotenv
 
 load_dotenv()
 
-DB_URL = os.environ.get("DB_HOST")
+DB_URL = os.environ.get("DATABASE_URL")
 
 if not DB_URL:
     print("Erreur : La variable DATABASE_URL n'a pas été trouvée.")
