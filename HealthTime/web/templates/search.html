@@ -1,0 +1,55 @@
+{% extends "base.html" %}
+
+{% block content %}
+<div class="container search-container">
+    
+    <div class="search-header">
+        <h2>Trouver un <span>Praticien</span></h2>
+        <p>Sélectionnez une spécialité ou recherchez directement le nom de votre médecin.</p>
+
+        <form action="/search" method="GET" class="search-form">
+            <div class="search-input-wrapper double-input">
+                
+            <select name="specialty" class="search-input search-select">
+                <option value="">Toutes les spécialités</option>
+                {% for spec in specialties %}
+                    <option value="{{ spec.id }}" {% if selected_spec_id == spec.id %}selected{% endif %}>
+                        {{ spec.name }}
+                    </option>
+                {% endfor %}
+            </select>
+                
+                <div class="divider-vertical"></div>
+                
+                <input type="text" name="name" class="search-input" placeholder="Nom du médecin (optionnel)" value="{{ search_name }}">
+                
+                <button type="submit" class="btn">Rechercher</button>
+            </div>
+        </form>
+    </div>
+
+    {% if has_searched %}
+        <div class="search-results-section">
+            <h3 class="results-title">Résultats de votre recherche</h3>
+            
+            {% if doctors %}
+                <div class="doctors-grid">
+                    {% for doc in doctors %}
+                    <div class="doctor-card">
+                        <div class="doc-avatar">👩‍⚕️</div>
+                        <h4>Dr. {{ doc.name }}</h4>
+                        <p class="doc-specialty">{{ doc.specialty }}</p>
+                        <a href="/login" class="btn btn-outline btn-sm">Prendre RDV</a>
+                    </div>
+                    {% endfor %}
+                </div>
+            {% else %}
+                <div class="no-results">
+                    <p>Nous n'avons trouvé aucun praticien correspondant à vos critères de recherche.</p>
+                </div>
+            {% endif %}
+        </div>
+    {% endif %}
+
+</div>
+{% endblock %}

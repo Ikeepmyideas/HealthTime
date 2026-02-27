@@ -1,0 +1,34 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Healthtime - Votre partenaire bien-être</title>
+    
+    <link rel="stylesheet" href="{{ url_for('static', filename='style.css') }}"></head>
+<body>
+
+    <nav class="navbar">
+        <a href="/" style="text-decoration: none;">
+            <div class="logo-text">Healthtime</div>
+        </a>
+        
+        <div class="nav-links">
+            <a href="/">Accueil</a>
+            <a href="/search">Praticiens</a>
+            <a href="/login">Connexion</a>
+            <a href="/register" class="btn-nav">S'inscrire</a>
+        </div>
+    </nav>
+
+    <main>
+        {% block content %}
+        {% endblock %}
+    </main>
+
+    <footer class="footer">
+        <p>&copy; 2026 Healthtime. Tous droits réservés. L'excellence médicale pensée pour vous.</p>
+    </footer>
+
+</body>
+</html>

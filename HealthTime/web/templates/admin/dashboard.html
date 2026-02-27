@@ -1,0 +1,137 @@
+{% extends "base.html" %}
+
+{% block content %}
+<div class="dashboard-wrapper container">
+    
+    <aside class="dashboard-sidebar">
+        <div class="profile-section">
+            <div class="profile-avatar" style="background-color: #ffebee; color: #c62828;">👑</div>
+            <h3>{{ user.name }}</h3>
+            <p>Espace Administrateur</p>
+        </div>
+        
+        <nav class="sidebar-nav">
+            <a href="?tab=dashboard" class="{% if tab == 'dashboard' %}active{% endif %}">📊 Accueil</a>
+            <a href="?tab=add_doctor" class="{% if tab == 'add_doctor' %}active{% endif %}">➕ Ajouter un Docteur</a>
+            <a href="?tab=view_doctors" class="{% if tab == 'view_doctors' %}active{% endif %}">🩺 Liste des Docteurs</a>
+            <a href="/logout" class="logout-link">🚪 Se déconnecter</a>
+        </nav>
+    </aside>
+
+    <main class="dashboard-content">
+
+        {% with messages = get_flashed_messages(with_categories=true) %}
+          {% if messages %}
+            {% for category, message in messages %}
+              <div class="alert alert-{{ category }}" style="padding: 15px; margin-bottom: 20px; border-radius: 8px; 
+              background-color: {% if category == 'success' %}#d4edda{% else %}#f8d7da{% endif %}; color: {% if category == 'success' %}#155724{% else %}#721c24{% endif %}; border: 1px solid {% if category == 'success' %}#c3e6cb{% else %}#f5c6cb{% endif %};">
+                {{ message }}
+              </div>
+            {% endfor %}
+          {% endif %}
+        {% endwith %}
+
+        {% if tab == 'dashboard' %}
+        <div class="dashboard-header welcome-card" style="border-left-color: #2196F3;">
+            <h2>Dashboard <span>Administrateur</span></h2>
+            <p>Gérez les professionnels de santé, surveillez les accès et administrez le système central.</p>
+        </div>
+        {% endif %}
+
+        {% if tab == 'add_doctor' %}
+        <div class="welcome-card" style="max-width: 600px; margin: 0 auto;">
+            <h2 style="color: #4a4244;">➕ Ajouter un nouveau docteur</h2>
+            <p style="color: #8a8183; margin-bottom: 20px;">Un mot de passe sécurisé sera généré automatiquement.</p>
+            
+            <form action="/admin_add_doctor" method="POST">
+                <div style="margin-bottom: 15px;">
+                    <label style="display: block; margin-bottom: 5px; font-weight: bold;">Nom complet *</label>
+                    <input type="text" name="name" class="search-input" style="width: 100%; border: 1px solid #ccc; padding: 10px; border-radius: 5px;" required>
+                </div>
+                
+                <div style="margin-bottom: 15px;">
+                    <label style="display: block; margin-bottom: 5px; font-weight: bold;">Nom d'utilisateur *</label>
+                    <input type="text" name="username" class="search-input" style="width: 100%; border: 1px solid #ccc; padding: 10px; border-radius: 5px;" required>
+                </div>
+
+                <div style="margin-bottom: 15px;">
+                    <label style="display: block; margin-bottom: 5px; font-weight: bold;">Numéro de licence (optionnel)</label>
+                    <input type="text" name="license_number" class="search-input" style="width: 100%; border: 1px solid #ccc; padding: 10px; border-radius: 5px;">
+                </div>
+
+                <div style="margin-bottom: 25px;">
+                    <label style="display: block; margin-bottom: 10px; font-weight: bold;">Spécialités</label>
+                    <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 10px; background: #f9f9f9; padding: 15px; border-radius: 8px; border: 1px solid #eee;">
+                        {% for spec in specialties %}
+                            <label style="cursor: pointer; display: flex; align-items: center; gap: 8px;">
+                                <input type="checkbox" name="specialties" value="{{ spec.id }}">
+                                {{ spec.name }}
+                            </label>
+                        {% endfor %}
+                    </div>
+                </div>
+
+                <button type="submit" class="btn" style="background-color: #2E7D32; width: 100%; font-size: 16px;">🚀 Créer le Docteur</button>
+            </form>
+        </div>
+        {% endif %}
+
+        {% if tab == 'view_doctors' %}
+        <div class="welcome-card" style="padding: 30px;">
+            <h2 style="color: #4a4244; margin-bottom: 20px;">🩺 Liste des Docteurs</h2>
+            
+            <form action="/admin_dashboard" method="GET" style="display: flex; gap: 10px; margin-bottom: 30px;">
+                <input type="hidden" name="tab" value="view_doctors">
+                <input type="text" name="search" value="{{ search_query }}" placeholder="Chercher par nom, id..." class="search-input" style="flex: 1; border: 1px solid #ccc; padding: 10px; border-radius: 5px;">
+                <button type="submit" class="btn" style="background-color: #2196F3;">🔎 Chercher</button>
+                <a href="?tab=view_doctors" class="btn" style="background-color: #9e9e9e;">♻ Reset</a>
+            </form>
+
+            {% if doctors %}
+                <table class="weekly-calendar" style="width: 100%; text-align: left;">
+                    <thead>
+                        <tr>
+                            <th style="padding: 10px; border-bottom: 2px solid #ddd;">ID</th>
+                            <th style="padding: 10px; border-bottom: 2px solid #ddd;">Docteur</th>
+                            <th style="padding: 10px; border-bottom: 2px solid #ddd;">Username</th>
+                            <th style="padding: 10px; border-bottom: 2px solid #ddd;">Statut</th>
+                            <th style="padding: 10px; border-bottom: 2px solid #ddd; text-align: right;">Action</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        {% for doc in doctors %}
+                        <tr>
+                            <td style="padding: 15px 10px; border-bottom: 1px solid #eee;">#{{ doc.id }}</td>
+                            <td style="padding: 15px 10px; border-bottom: 1px solid #eee; font-weight: bold;">Dr. {{ doc.name }}</td>
+                            <td style="padding: 15px 10px; border-bottom: 1px solid #eee; color: #666;">{{ doc.username }}</td>
+                            <td style="padding: 15px 10px; border-bottom: 1px solid #eee;">
+                                {% if doc.status == 'active' %}
+                                    <span class="badge badge-green">Actif</span>
+                                {% else %}
+                                    <span class="badge badge-red">Inactif</span>
+                                {% endif %}
+                            </td>
+                            <td style="padding: 15px 10px; border-bottom: 1px solid #eee; text-align: right;">
+                                {% if doc.status == 'active' %}
+                                    <form action="/admin_doctor_action/deactivate/{{ doc.id }}" method="POST" style="display:inline;" onsubmit="return confirm('Désactiver ce docteur ?');">
+                                        <button type="submit" class="btn" style="background-color: #E53935; padding: 5px 10px; font-size: 12px;">Désactiver</button>
+                                    </form>
+                                {% else %}
+                                    <form action="/admin_doctor_action/reactivate/{{ doc.id }}" method="POST" style="display:inline;" onsubmit="return confirm('Réactiver ce docteur ?');">
+                                        <button type="submit" class="btn" style="background-color: #2E7D32; padding: 5px 10px; font-size: 12px;">Réactiver</button>
+                                    </form>
+                                {% endif %}
+                            </td>
+                        </tr>
+                        {% endfor %}
+                    </tbody>
+                </table>
+            {% else %}
+                <p style="text-align: center; color: #888; padding: 30px;">Aucun docteur trouvé.</p>
+            {% endif %}
+        </div>
+        {% endif %}
+
+    </main>
+</div>
+{% endblock %}

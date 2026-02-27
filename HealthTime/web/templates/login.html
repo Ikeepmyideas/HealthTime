@@ -1,0 +1,34 @@
+{% extends "base.html" %}
+
+{% block content %}
+<div class="container form-container">
+    <div class="welcome-card form-card">
+        <h2>Bon retour sur <span>Healthtime</span></h2>
+        <p>Connectez-vous pour accéder à votre espace personnel.</p>
+
+        {% if error %}
+            <div class="alert alert-error">
+                {{ error }}
+            </div>
+        {% endif %}
+
+        <form action="/login" method="POST" class="auth-form">
+            <div class="input-group">
+                <label for="username">Nom d'utilisateur</label>
+                <input type="text" id="username" name="username" placeholder="Entrez votre identifiant" required>
+            </div>
+
+            <div class="input-group">
+                <label for="password">Mot de passe</label>
+                <input type="password" id="password" name="password" placeholder="Entrez votre mot de passe" required>
+            </div>
+
+            <button type="submit" class="btn btn-full">Se connecter</button>
+        </form>
+        
+        <div class="form-footer">
+            <p>Pas encore de compte ? <a href="/register">S'inscrire</a></p>
+        </div>
+    </div>
+</div>
+{% endblock %}

@@ -1,0 +1,359 @@
+{% extends "base.html" %}
+
+{% block content %}
+<div class="dashboard-wrapper container">
+    
+    <aside class="dashboard-sidebar">
+        <div class="profile-section">
+            <div class="profile-avatar">🌸</div>
+            <h3>{{ user.name }}</h3>
+            <p>Espace Patient</p>
+        </div>
+        
+        <nav class="sidebar-nav">
+            <a href="?tab=dashboard" class="{% if tab == 'dashboard' %}active{% endif %}">📊 Mes rendez-vous</a>
+            <a href="?tab=booking" class="{% if tab == 'booking' %}active{% endif %}">📅 Prendre un RDV</a>
+            <a href="?tab=calendar" class="{% if tab == 'calendar' %}active{% endif %}">📆 Mon Semainier</a>
+            <a href="/logout" class="logout-link">🚪 Se déconnecter</a>
+        </nav>
+    </aside>
+
+    <main class="dashboard-content">
+        {% if upcoming_alerts %}
+            <div class="notifications-container" style="margin-bottom: 25px;">
+                {% for appt in upcoming_alerts %}
+                    <div class="alert-reminder" style="background-color: #e3f2fd; color: #0c5460; padding: 15px 20px; border-radius: 8px; border-left: 5px solid #2196F3; display: flex; align-items: center; justify-content: space-between; box-shadow: 0 2px 4px rgba(0,0,0,0.05); margin-bottom: 10px;">
+                        <div>
+                            <span style="font-size: 1.2rem; margin-right: 10px;">⏰</span>
+                            <strong>Rappel imminent :</strong> 
+                            Vous avez une consultation le <b>{{ appt.date }} à {{ appt.time }}</b> avec le <b>Dr. {{ appt.contact_name }}</b>.
+                        </div>
+                    </div>
+                {% endfor %}
+            </div>
+        {% endif %}
+        {% if tab == 'dashboard' %}
+        <div class="dashboard-header welcome-card">
+            <h2>Bonjour, <span>{{ user.name.split(' ')[0] }}</span></h2>
+            <p>Voici l'état de vos rendez-vous médicaux.</p>
+        </div>
+
+        <section class="appointments-section">
+            <h3 class="section-subtitle">À venir</h3>
+            {% if upcoming %}
+                <div class="appointments-list">
+                    {% for appt in upcoming %}
+                        <div class="appointment-card {% if appt.is_canceled %}canceled{% else %}upcoming{% endif %}">
+                            <div class="appt-info">
+                                <h4>Dr. {{ appt.doctor_name }}</h4>
+                                <p class="appt-datetime">🗓️ {{ appt.date }} à 🕒 {{ appt.time[:5] }}</p>
+                            </div>
+                            <div class="appt-actions" style="display: flex; gap: 10px; align-items: center;">
+                                {% if appt.is_canceled %}
+                                    <span class="badge badge-red">Annulé</span>
+                                {% else %}
+                                    <span class="badge badge-green">Confirmé</span>
+                                    <form action="/cancel_appointment/{{ appt.id }}" method="POST" onsubmit="return confirm('Êtes-vous sûr(e) de vouloir annuler ce rendez-vous ?');" style="margin: 0;">
+                                        <button type="submit" class="btn btn-cancel btn-sm">Annuler</button>
+                                    </form>
+                                {% endif %}
+                            </div>
+                        </div>
+                    {% endfor %}
+                </div>
+            {% else %}
+                <div class="empty-state"><p>Aucun rendez-vous à venir.</p></div>
+            {% endif %}
+
+            <h3 class="section-subtitle" style="margin-top: 40px;">Historique (Passés)</h3>
+            {% if past %}
+                <div class="appointments-list">
+                    {% for appt in past %}
+                        <div class="appointment-card past">
+                            <div class="appt-info">
+                                <h4>Dr. {{ appt.doctor_name }}</h4>
+                                <p class="appt-datetime">🗓️ {{ appt.date }} à 🕒 {{ appt.time[:5] }}</p>
+                            </div>
+                            <div class="appt-actions">
+                                {% if appt.is_canceled %}
+                                    <span class="badge badge-red">Annulé</span>
+                                {% else %}
+                                    <span class="badge badge-gray">Terminé</span>
+                                {% endif %}
+                            </div>
+                        </div>
+                    {% endfor %}
+                </div>
+            {% else %}
+                <div class="empty-state"><p>Aucun historique disponible.</p></div>
+            {% endif %}
+        </section>
+
+        {% elif tab == 'booking' %}
+        <div class="welcome-card" style="text-align: left;">
+            <h2 style="font-family: 'Playfair Display', serif; color: #4a4244;">Prendre un <span>Nouveau RDV</span></h2>
+            
+            <form action="/patient_dashboard" method="GET" class="booking-form">
+                <input type="hidden" name="tab" value="booking">
+                
+                <div class="input-group">
+                    <label>Praticien</label>
+                    <select name="doc_id" required class="search-input" style="border: 1px solid #e0d5d7!important; padding: 10px; border-radius: 10px; width: 100%;">
+                        <option value="">-- Choisissez un médecin --</option>
+                        {% for doc in doctors %}
+                            <option value="{{ doc.id }}" {% if selected_doc|string == doc.id|string %}selected{% endif %}>
+                                Dr. {{ doc.name }}
+                            </option>
+                        {% endfor %}
+                    </select>
+                </div>
+
+                <div class="input-group">
+                    <label>Date souhaitée</label>
+                    <input type="date" name="date" value="{{ selected_date }}" required style="border: 1px solid #e0d5d7; padding: 10px; border-radius: 10px; width: 100%; font-family: 'Montserrat';">
+                </div>
+
+                <button type="submit" class="btn">Afficher les créneaux</button>
+            </form>
+
+            {% if selected_doc and selected_date %}
+                <div class="slots-container">
+                    <h3 style="margin-top: 30px; font-size: 1.1rem; color: #6d6875;">Créneaux disponibles le {{ selected_date }} :</h3>
+                    {% if slots %}
+                        <div class="slots-grid">
+                            {% for slot in slots %}
+                            <form action="/book_appointment" method="POST" style="display:inline;">
+                                <input type="hidden" name="doc_id" value="{{ selected_doc }}">
+                                <input type="hidden" name="date" value="{{ selected_date }}">
+                                <input type="hidden" name="time" value="{{ slot }}">
+                                <button type="submit" class="slot-btn">{{ slot }}</button>
+                            </form>
+                            {% endfor %}
+                        </div>
+                    {% else %}
+                        <p style="color: #d9534f; font-weight: 500;">Aucun créneau disponible pour cette date.</p>
+                    {% endif %}
+                </div>
+            {% endif %}
+        </div>
+
+        {% elif tab == 'calendar' %}
+        <div class="welcome-card" style="padding: 30px;">
+            <div class="calendar-header" style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 20px;">
+                <a href="?tab=calendar&week_offset={{ week_offset - 1 }}" class="btn btn-outline" style="padding: 5px 15px;">⬅</a>
+                <h2 style="margin: 0; font-family: 'Playfair Display'; color: #b5838d;">Mon Semainier</h2>
+                <a href="?tab=calendar&week_offset={{ week_offset + 1 }}" class="btn btn-outline" style="padding: 5px 15px;">➡</a>
+            </div>
+            
+            <p style="text-align: center; color: #8a8183; margin-bottom: 20px;">
+                Semaine du {{ week_dates[0].strftime('%d/%m') }} au {{ week_dates[-1].strftime('%d/%m') }}
+            </p>
+
+            <table class="weekly-calendar">
+                <thead>
+                    <tr>
+                        <th>Heure</th>
+                        {% for d in week_dates %}
+                            <th>{{ d.strftime('%a') }}<br>{{ d.strftime('%d %b') }}</th>
+                        {% endfor %}
+                    </tr>
+                </thead>
+                <tbody>
+                    {% for hour in range(8, 19) %}
+                    <tr>
+                        <td class="time-cell">{{ "%02d:00" | format(hour) }}</td>
+                        {% for d in week_dates %}
+                            {% set key = (d, hour) %}
+                            
+                            {% if key in appt_map %}
+                                {% set appt = appt_map[key] %}
+                                
+                                {% set spec = appt.specialty | default('Généraliste', true) %}
+                                {% set indic = appt.indications | default("Merci de vous présenter 10 min en avance avec votre carte vitale. En cas d'empêchement, merci d'annuler au moins 24h à l'avance.", true) %}
+                                
+                                <td class="appt-cell {% if appt.is_canceled %}canceled{% else %}active{% endif %} js-appt-cell" 
+                                    title="Dr {{ appt.doctor_name }}"
+                                    data-id="{{ appt.id }}"
+                                    data-doc="{{ appt.doctor_name }}"
+                                    data-spec="{{ spec }}"
+                                    data-date="{{ appt.date }}"
+                                    data-time="{{ appt.time_short }}"
+                                    data-status="{% if appt.is_canceled %}Annulé{% else %}Confirmé{% endif %}"
+                                    data-indic="{{ indic }}"
+                                    data-future="{{ 'true' if not appt.is_canceled and appt.date >= now.strftime('%Y-%m-%d') else 'false' }}">
+                                    {% if appt.is_canceled %}Annulé{% else %}Dr {{ appt.doctor_name.split(' ')[0] }}{% endif %}
+                                </td>
+                                
+                            {% else %}
+                                <td class="empty-cell"></td>
+                            {% endif %}
+                        {% endfor %}
+                    </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        </div>
+        {% endif %}
+
+    </main>
+</div>
+
+<div id="apptModal" class="modal-overlay">
+    <div class="modal-content welcome-card">
+        <span class="close-modal" onclick="closeModal()">&times;</span>
+        <h3 style="font-family: 'Playfair Display', serif; color: #b5838d; margin-top: 0; margin-bottom: 20px;">Détails du Rendez-vous</h3>
+        
+        <div style="font-size: 1.05rem; color: #6d6875; line-height: 1.8;">
+            <p style="margin: 5px 0;">
+                <strong>Praticien :</strong> Dr. <span id="modalDoc"></span> 
+                <span id="modalSpec" style="font-size: 0.9em; color: #b5838d; font-style: italic;"></span>
+            </p>
+            <p style="margin: 5px 0;"><strong>Date :</strong> <span id="modalDate"></span> à <span id="modalTime"></span></p>
+            <p style="margin: 5px 0;"><strong>Statut :</strong> <span id="modalStatus" class="badge"></span></p>
+            
+            <div style="margin-top: 20px; padding: 15px; background-color: #fcf9f9; border-radius: 10px; border-left: 4px solid #e5989b;">
+                <h4 style="margin: 0 0 10px 0; color: #4a4244; font-size: 1rem;">Indications du cabinet :</h4>
+                <p id="modalIndications" style="margin: 0; font-size: 0.95rem;"></p>
+            </div>
+
+            <div id="modalCancelContainer" style="margin-top: 20px; text-align: center; display: none;">
+                <form id="modalCancelForm" method="POST" onsubmit="return confirm('Êtes-vous sûr(e) de vouloir annuler ce rendez-vous ?');">
+                    <button type="submit" class="btn btn-cancel" style="width: 100%;">Annuler ce rendez-vous</button>
+                </form>
+            </div>
+
+        </div>
+    </div>
+</div>
+
+<script>
+document.addEventListener('DOMContentLoaded', function() {
+    const apptCells = document.querySelectorAll('.js-appt-cell');
+    const modal = document.getElementById('apptModal');
+    const closeBtn = document.querySelector('.close-modal');
+
+    function openModal() {
+        modal.style.display = 'flex';
+        document.body.classList.add('modal-open');
+    }
+
+    function closeModal() {
+        modal.style.display = 'none';
+        document.body.classList.remove('modal-open');
+    }
+
+    window.closeModal = closeModal;
+
+    apptCells.forEach(function(cell) {
+        cell.addEventListener('click', function() {
+            document.getElementById('modalDoc').innerText = this.dataset.doc;
+            document.getElementById('modalSpec').innerText = "- " + this.dataset.spec;
+            document.getElementById('modalDate').innerText = this.dataset.date;
+            document.getElementById('modalTime').innerText = this.dataset.time;
+            document.getElementById('modalIndications').innerText = this.dataset.indic;
+
+            let statusSpan = document.getElementById('modalStatus');
+            let status = this.dataset.status;
+            statusSpan.innerText = status;
+
+            if(status.toLowerCase().includes('annulé')) {
+                statusSpan.className = "badge badge-red";
+            } else {
+                statusSpan.className = "badge badge-green";
+            }
+
+            let cancelContainer = document.getElementById('modalCancelContainer');
+            let cancelForm = document.getElementById('modalCancelForm');
+            let isFuture = this.dataset.future === 'true';
+            
+            if (isFuture) {
+                cancelContainer.style.display = 'block';
+                cancelForm.action = "/cancel_appointment/" + this.dataset.id;
+            } else {
+                cancelContainer.style.display = 'none';
+            }
+
+            openModal();
+        });
+    });
+
+    if(closeBtn) {
+        closeBtn.addEventListener('click', closeModal);
+    }
+
+    modal.addEventListener('click', function(e) {
+        if (e.target === modal) {
+            closeModal();
+        }
+    });
+
+    document.addEventListener('keydown', function(e) {
+        if (e.key === "Escape") {
+            closeModal();
+        }
+    });
+});
+</script>
+
+<style>
+.btn-cancel {
+    background-color: white;
+    color: #d9534f;
+    border: 1px solid #d9534f;
+    padding: 8px 15px;
+    border-radius: 20px;
+    cursor: pointer;
+    font-weight: 500;
+    transition: all 0.2s ease;
+}
+
+.btn-cancel:hover {
+    background-color: #fdf3f4;
+    color: #c9302c;
+}
+
+.modal-overlay {
+    position: fixed;
+    inset: 0; 
+    background: rgba(74, 66, 68, 0.4); 
+    display: none; 
+    justify-content: center;
+    align-items: center;
+    z-index: 9999; 
+}
+
+.modal-content {
+    position: relative;
+    max-width: 450px; /* Un peu moins large pour un plus bel effet */
+    width: 90%;
+    background: white;
+    border-radius: 20px;
+    padding: 30px;
+    box-shadow: 0 20px 60px rgba(181, 131, 141, 0.15); /* Ombre rosée */
+    animation: fadeIn 0.25s ease;
+}
+
+@keyframes fadeIn {
+    from { opacity: 0; transform: translateY(-15px); }
+    to { opacity: 1; transform: translateY(0); }
+}
+
+.close-modal {
+    position: absolute;
+    top: 15px;
+    right: 20px;
+    font-size: 26px;
+    cursor: pointer;
+    color: #8a8183;
+    transition: 0.2s;
+}
+
+.close-modal:hover {
+    color: #d9534f;
+}
+
+body.modal-open {
+    overflow: hidden;
+}
+</style>
+{% endblock %}

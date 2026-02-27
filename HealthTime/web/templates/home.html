@@ -1,0 +1,49 @@
+{% extends "base.html" %}
+
+{% block content %}
+<section class="hero-section">
+    <div class="hero-content">
+        <h1>Prenez soin de vous,<br><span>en toute simplicité.</span></h1>
+        <p>Healthtime est votre partenaire bien-être. Trouvez le praticien idéal, gérez vos consultations et reprenez le contrôle de votre santé dans un espace pensé pour vous.</p>
+        <div class="hero-buttons">
+            <a class="btn" href="/search">Trouver un praticien</a>
+            <a class="btn btn-outline" href="/login">Mon espace patient</a>
+        </div>
+    </div>
+</section>
+
+<section class="features-section">
+    <div class="section-title">
+        <h2>Pourquoi choisir Healthtime ?</h2>
+        <div class="divider"></div>
+    </div>
+    
+    <div class="features-grid">
+        <div class="feature-card">
+            <div class="icon-circle">🌸</div>
+            <h3>Réservation simplifiée</h3>
+            <p>Accédez aux disponibilités de vos professionnels de santé 24h/24 et 7j/7. Prenez rendez-vous en quelques clics seulement.</p>
+        </div>
+        
+        <div class="feature-card">
+            <div class="icon-circle">🩺</div>
+            <h3>Expertise de confiance</h3>
+            <p>Une sélection rigoureuse de praticiens qualifiés et bienveillants, prêts à vous accompagner dans votre parcours de soins.</p>
+        </div>
+        
+        <div class="feature-card">
+            <div class="icon-circle">✨</div>
+            <h3>Suivi personnalisé</h3>
+            <p>Retrouvez l'historique de vos consultations et vos rappels au même endroit, en toute sécurité.</p>
+        </div>
+    </div>
+</section>
+
+<section class="cta-section">
+    <div class="cta-content">
+        <h2>Prête à privilégier votre santé ?</h2>
+        <p>Rejoignez des milliers de patients qui font confiance à Healthtime pour leur bien-être au quotidien.</p>
+        <a class="btn" href="/register">Créer mon compte gratuitement</a>
+    </div>
+</section>
+{% endblock %}

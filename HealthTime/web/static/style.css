@@ -1,0 +1,859 @@
+/* =========================================
+   IMPORTATION DES POLICES
+   ========================================= */
+@import url('https://fonts.googleapis.com/css2?family=Montserrat:wght@300;400;500;600&family=Playfair+Display:ital,wght@0,600;1,600&display=swap');
+
+/* =========================================
+   STYLE GLOBAL DE LA PAGE (BASE)
+   ========================================= */
+body {
+    margin: 0;
+    font-family: 'Montserrat', sans-serif;
+    background-color: #fcf9f9; /* Fond très doux, légèrement rosé */
+    color: #4a4244;
+}
+
+/* =========================================
+   BARRE DE NAVIGATION (NAVBAR)
+   ========================================= */
+.navbar {
+    background-color: #ffffff;
+    padding: 18px 50px;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    box-shadow: 0 2px 15px rgba(0, 0, 0, 0.03); /* Ombre douce */
+}
+
+.navbar .logo-text {
+    font-family: 'Playfair Display', serif;
+    font-size: 1.5rem;
+    color: #b5838d; /* Vieux rose */
+    font-weight: 600;
+}
+
+.nav-links a {
+    color: #6d6875;
+    text-decoration: none;
+    margin-left: 25px;
+    font-weight: 500;
+    font-size: 0.95rem;
+    transition: color 0.3s ease;
+}
+
+.nav-links a:hover {
+    color: #e5989b;
+}
+
+/* Bouton spécifique dans la navbar (S'inscrire) */
+.btn-nav {
+    background-color: #e5989b;
+    color: white !important;
+    padding: 8px 20px;
+    border-radius: 20px;
+    transition: background-color 0.3s ease;
+}
+
+.btn-nav:hover {
+    background-color: #b5838d;
+    text-decoration: none !important;
+}
+
+/* =========================================
+   BOUTONS GLOBAUX
+   ========================================= */
+.btn {
+    background-color: #e5989b;
+    color: white;
+    padding: 14px 35px;
+    text-decoration: none;
+    border-radius: 30px; /* Forme "pilule" */
+    font-weight: 500;
+    font-size: 1rem;
+    transition: all 0.3s ease;
+    box-shadow: 0 4px 15px rgba(229, 152, 155, 0.3);
+    display: inline-block;
+    border: none;
+    cursor: pointer;
+}
+
+.btn:hover {
+    background-color: #b5838d;
+    box-shadow: 0 6px 20px rgba(181, 131, 141, 0.4);
+    transform: translateY(-2px);
+}
+
+.btn-outline {
+    background-color: transparent;
+    color: #b5838d;
+    border: 2px solid #b5838d;
+    box-shadow: none;
+}
+
+.btn-outline:hover {
+    background-color: #b5838d;
+    color: white;
+    box-shadow: 0 4px 15px rgba(181, 131, 141, 0.2);
+}
+
+.btn-full {
+    width: 100%;
+    margin-top: 10px;
+    box-sizing: border-box;
+}
+
+/* =========================================
+   CONTENEURS (UTILITIES)
+   ========================================= */
+.container {
+    padding: 40px;
+    min-height: 75vh;
+    display: flex;
+    justify-content: center;
+    align-items: center;
+}
+
+.welcome-card {
+    background: white;
+    padding: 60px 50px;
+    border-radius: 20px;
+    box-shadow: 0 10px 40px rgba(181, 131, 141, 0.08);
+    text-align: center;
+    border-top: 5px solid #e5989b;
+}
+
+/* =========================================
+   PAGE D'ACCUEIL (HOME)
+   ========================================= */
+.hero-section {
+    padding: 80px 40px;
+    text-align: center;
+    background: linear-gradient(135deg, #fcf9f9 0%, #faeef0 100%);
+}
+
+.hero-content {
+    max-width: 800px;
+    margin: 0 auto;
+}
+
+.hero-content h1 {
+    font-family: 'Playfair Display', serif;
+    font-size: 3rem;
+    color: #4a4244;
+    margin-bottom: 20px;
+    line-height: 1.2;
+}
+
+.hero-content h1 span {
+    color: #b5838d;
+    font-style: italic;
+}
+
+.hero-content p {
+    font-size: 1.1rem;
+    color: #6d6875;
+    margin-bottom: 40px;
+    line-height: 1.8;
+}
+
+.hero-buttons {
+    display: flex;
+    justify-content: center;
+    gap: 20px;
+    flex-wrap: wrap;
+}
+
+.features-section {
+    padding: 80px 40px;
+    background-color: white;
+}
+
+.section-title {
+    text-align: center;
+    margin-bottom: 60px;
+}
+
+.section-title h2 {
+    font-family: 'Playfair Display', serif;
+    font-size: 2.2rem;
+    color: #4a4244;
+    margin-bottom: 15px;
+}
+
+.divider {
+    height: 3px;
+    width: 60px;
+    background-color: #e5989b;
+    margin: 0 auto;
+    border-radius: 5px;
+}
+
+.features-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
+    gap: 40px;
+    max-width: 1100px;
+    margin: 0 auto;
+}
+
+.feature-card {
+    background-color: #fcf9f9;
+    padding: 40px 30px;
+    border-radius: 15px;
+    text-align: center;
+    transition: transform 0.3s ease;
+    border: 1px solid rgba(229, 152, 155, 0.1);
+}
+
+.feature-card:hover {
+    transform: translateY(-5px);
+    box-shadow: 0 10px 30px rgba(181, 131, 141, 0.1);
+}
+
+.icon-circle {
+    width: 70px;
+    height: 70px;
+    background-color: white;
+    border-radius: 50%;
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    margin: 0 auto 20px auto;
+    font-size: 1.8rem;
+    box-shadow: 0 4px 15px rgba(0,0,0,0.03);
+}
+
+.feature-card h3 {
+    font-family: 'Playfair Display', serif;
+    color: #b5838d;
+    font-size: 1.3rem;
+    margin-bottom: 15px;
+}
+
+.feature-card p {
+    color: #8a8183;
+    line-height: 1.6;
+    font-size: 0.95rem;
+}
+
+.cta-section {
+    padding: 80px 40px;
+    background-color: #b5838d;
+    text-align: center;
+    color: white;
+}
+
+.cta-content {
+    max-width: 600px;
+    margin: 0 auto;
+}
+
+.cta-content h2 {
+    font-family: 'Playfair Display', serif;
+    font-size: 2.2rem;
+    margin-bottom: 20px;
+}
+
+.cta-content p {
+    font-size: 1.1rem;
+    margin-bottom: 40px;
+    opacity: 0.9;
+}
+
+.cta-section .btn {
+    background-color: white;
+    color: #b5838d;
+}
+
+.cta-section .btn:hover {
+    background-color: #fcf9f9;
+    transform: translateY(-2px);
+    box-shadow: 0 10px 20px rgba(0,0,0,0.1);
+}
+
+/* =========================================
+   FORMULAIRES (LOGIN / REGISTER)
+   ========================================= */
+.form-container {
+    min-height: 70vh;
+}
+
+.form-card {
+    max-width: 450px;
+    padding: 50px 40px;
+    margin: 40px auto; /* Pour centrer si on n'utilise pas .container */
+}
+
+.form-card h2 {
+    font-family: 'Playfair Display', serif;
+    color: #6d6875;
+    font-size: 1.8rem;
+    margin-top: 0;
+    margin-bottom: 10px;
+}
+
+.form-card h2 span {
+    color: #e5989b;
+    font-style: italic;
+}
+
+.auth-form {
+    margin-top: 30px;
+    text-align: left;
+}
+
+.input-group {
+    margin-bottom: 20px;
+}
+
+.input-group label {
+    display: block;
+    font-size: 0.9rem;
+    color: #6d6875;
+    margin-bottom: 8px;
+    font-weight: 500;
+}
+
+.input-group input {
+    width: 100%;
+    padding: 12px 15px;
+    border: 1px solid #e0d5d7;
+    border-radius: 10px;
+    font-family: 'Montserrat', sans-serif;
+    font-size: 1rem;
+    color: #4a4244;
+    background-color: #fcf9f9;
+    transition: border-color 0.3s ease, box-shadow 0.3s ease;
+    box-sizing: border-box;
+}
+
+.input-group input:focus {
+    outline: none;
+    border-color: #e5989b;
+    box-shadow: 0 0 8px rgba(229, 152, 155, 0.2);
+    background-color: white;
+}
+
+.form-footer {
+    margin-top: 25px;
+    font-size: 0.9rem;
+    color: #8a8183;
+}
+
+.form-footer a {
+    color: #b5838d;
+    text-decoration: none;
+    font-weight: 600;
+}
+
+.form-footer a:hover {
+    text-decoration: underline;
+}
+
+/* =========================================
+   MESSAGES D'ERREUR (ALERTS)
+   ========================================= */
+.alert {
+    padding: 12px 15px;
+    border-radius: 8px;
+    font-size: 0.9rem;
+    margin-bottom: 20px;
+    text-align: left;
+}
+
+.alert-error {
+    background-color: #fdf3f4;
+    color: #d9534f;
+    border-left: 4px solid #d9534f;
+}
+
+/* =========================================
+   PIED DE PAGE (FOOTER)
+   ========================================= */
+.footer {
+    background-color: #fcf9f9;
+    color: #8a8183;
+    text-align: center;
+    padding: 25px 20px;
+    font-size: 0.9rem;
+    border-top: 1px solid rgba(229, 152, 155, 0.2);
+    margin-top: auto; /* Pousse le footer vers le bas si la page est courte */
+}
+
+
+
+/* =========================================
+   PAGE DE RECHERCHE (SEARCH)
+   ========================================= */
+.search-container {
+    flex-direction: column;
+    align-items: center;
+    justify-content: flex-start;
+    padding-top: 60px;
+}
+
+.search-header {
+    text-align: center;
+    max-width: 700px;
+    width: 100%;
+    margin-bottom: 50px;
+}
+
+.search-header h2 {
+    font-family: 'Playfair Display', serif;
+    font-size: 2.5rem;
+    color: #4a4244;
+    margin-bottom: 15px;
+    margin-top: 0;
+}
+
+.search-header h2 span {
+    color: #e5989b;
+    font-style: italic;
+}
+
+.search-form {
+    background: white;
+    padding: 30px;
+    border-radius: 20px;
+    box-shadow: 0 10px 40px rgba(181, 131, 141, 0.08);
+    margin-top: 30px;
+}
+
+.search-input-wrapper {
+    display: flex;
+    gap: 15px;
+}
+
+.search-input-wrapper input {
+    flex: 1;
+    padding: 15px 25px;
+    border: 2px solid #fcf9f9;
+    background-color: #fcf9f9;
+    border-radius: 30px; /* Forme arrondie élégante */
+    font-family: 'Montserrat', sans-serif;
+    font-size: 1.05rem;
+    color: #4a4244;
+    transition: all 0.3s ease;
+}
+
+.search-input-wrapper input:focus {
+    outline: none;
+    border-color: #e5989b;
+    background-color: white;
+    box-shadow: 0 0 10px rgba(229, 152, 155, 0.1);
+}
+
+.search-filters {
+    display: flex;
+    justify-content: center;
+    gap: 30px;
+    margin-top: 20px;
+    color: #6d6875;
+}
+
+.search-filters label {
+    cursor: pointer;
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    font-weight: 500;
+    font-size: 0.95rem;
+}
+
+/* Colorer les boutons radio en vieux rose */
+.search-filters input[type="radio"] {
+    accent-color: #e5989b; 
+    transform: scale(1.1);
+}
+
+/* --- RESULTATS DE RECHERCHE --- */
+.search-results-section {
+    width: 100%;
+    max-width: 1100px;
+}
+
+.results-title {
+    font-family: 'Playfair Display', serif;
+    color: #6d6875;
+    font-size: 1.5rem;
+    margin-bottom: 30px;
+    text-align: center;
+}
+
+.doctors-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(260px, 1fr));
+    gap: 30px;
+}
+
+.doctor-card {
+    background: white;
+    padding: 40px 20px;
+    border-radius: 20px;
+    text-align: center;
+    box-shadow: 0 5px 20px rgba(181, 131, 141, 0.05);
+    transition: transform 0.3s ease;
+    border: 1px solid rgba(229, 152, 155, 0.1);
+}
+
+.doctor-card:hover {
+    transform: translateY(-5px);
+    box-shadow: 0 10px 30px rgba(181, 131, 141, 0.15);
+}
+
+.doc-avatar {
+    font-size: 3.5rem;
+    margin-bottom: 15px;
+}
+
+.doctor-card h4 {
+    font-family: 'Playfair Display', serif;
+    font-size: 1.3rem;
+    color: #4a4244;
+    margin: 0 0 5px 0;
+}
+
+.doc-specialty {
+    color: #b5838d;
+    font-weight: 500;
+    margin-bottom: 25px;
+    font-size: 0.95rem;
+    text-transform: capitalize;
+}
+
+/* Ajustement pour le bouton dans la carte */
+.btn-sm {
+    padding: 10px 20px;
+    font-size: 0.9rem;
+}
+
+.no-results {
+    text-align: center;
+    color: #8a8183;
+    background-color: white;
+    padding: 30px;
+    border-radius: 15px;
+    border: 1px dashed #e0d5d7;
+}
+
+/* --- NOUVELLE BARRE DE RECHERCHE --- */
+.search-input-wrapper.double-input {
+    display: flex;
+    align-items: center;
+    background-color: #fcf9f9;
+    border: 2px solid #fcf9f9;
+    border-radius: 30px;
+    padding: 5px;
+    transition: all 0.3s ease;
+}
+
+.search-input-wrapper.double-input:focus-within {
+    border-color: #e5989b;
+    background-color: white;
+    box-shadow: 0 0 10px rgba(229, 152, 155, 0.1);
+}
+
+.search-input {
+    flex: 1;
+    padding: 12px 20px;
+    border: none !important; /* On enlève les bordures individuelles */
+    background: transparent !important;
+    font-family: 'Montserrat', sans-serif;
+    font-size: 1rem;
+    color: #4a4244;
+    box-shadow: none !important;
+}
+
+.search-input:focus {
+    outline: none;
+}
+
+.search-select {
+    cursor: pointer;
+    color: #6d6875;
+}
+
+.divider-vertical {
+    width: 2px;
+    height: 30px;
+    background-color: #e0d5d7;
+    margin: 0 10px;
+}
+
+/* On cache les anciens filtres radio puisqu'on ne les utilise plus */
+.search-filters {
+    display: none; 
+}
+
+
+/* =========================================
+   TABLEAU DE BORD (DASHBOARD)
+   ========================================= */
+.dashboard-wrapper {
+    display: flex;
+    align-items: flex-start;
+    gap: 40px;
+    padding-top: 40px;
+    padding-bottom: 40px;
+}
+
+/* --- SIDEBAR --- */
+.dashboard-sidebar {
+    width: 280px;
+    background-color: white;
+    border-radius: 20px;
+    box-shadow: 0 10px 40px rgba(181, 131, 141, 0.08);
+    padding: 30px 20px;
+    position: sticky;
+    top: 40px; /* Reste fixe au défilement */
+}
+
+.profile-section {
+    text-align: center;
+    border-bottom: 1px solid rgba(229, 152, 155, 0.2);
+    padding-bottom: 20px;
+    margin-bottom: 20px;
+}
+
+.profile-avatar {
+    font-size: 3rem;
+    background-color: #fcf9f9;
+    width: 80px;
+    height: 80px;
+    border-radius: 50%;
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    margin: 0 auto 10px auto;
+}
+
+.profile-section h3 {
+    font-family: 'Playfair Display', serif;
+    color: #4a4244;
+    margin: 0 0 5px 0;
+    font-size: 1.2rem;
+}
+
+.profile-section p {
+    color: #b5838d;
+    font-size: 0.9rem;
+    margin: 0;
+}
+
+.sidebar-nav {
+    display: flex;
+    flex-direction: column;
+    gap: 10px;
+}
+
+.sidebar-nav a {
+    text-decoration: none;
+    color: #6d6875;
+    padding: 12px 15px;
+    border-radius: 10px;
+    transition: all 0.3s ease;
+    font-weight: 500;
+}
+
+.sidebar-nav a:hover, .sidebar-nav a.active {
+    background-color: #fcf9f9;
+    color: #e5989b;
+}
+
+.sidebar-nav a.logout-link {
+    color: #d9534f;
+    margin-top: 20px;
+}
+
+.sidebar-nav a.logout-link:hover {
+    background-color: #fdf3f4;
+}
+
+/* --- CONTENU PRINCIPAL --- */
+.dashboard-content {
+    flex: 1;
+}
+
+.dashboard-header {
+    text-align: left;
+    padding: 40px;
+    margin-bottom: 40px;
+    border-top: none;
+    border-left: 5px solid #e5989b; /* Ligne colorée à gauche au lieu d'en haut */
+}
+
+.dashboard-header p {
+    margin-bottom: 25px;
+}
+
+.section-subtitle {
+    font-family: 'Playfair Display', serif;
+    color: #6d6875;
+    font-size: 1.6rem;
+    margin-bottom: 20px;
+    border-bottom: 2px solid #fcf9f9;
+    padding-bottom: 10px;
+}
+
+/* --- CARTES DE RENDEZ-VOUS --- */
+.appointments-list {
+    display: flex;
+    flex-direction: column;
+    gap: 15px;
+}
+
+.appointment-card {
+    background: white;
+    border-radius: 15px;
+    padding: 20px 25px;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    box-shadow: 0 5px 15px rgba(181, 131, 141, 0.05);
+    border-left: 5px solid transparent;
+    transition: transform 0.2s ease;
+}
+
+.appointment-card:hover {
+    transform: translateX(5px);
+}
+
+.appointment-card.upcoming {
+    border-left-color: #4CAF50; /* Vert pour validé */
+}
+
+.appointment-card.canceled {
+    border-left-color: #d9534f; /* Rouge pour annulé */
+    opacity: 0.7;
+}
+
+.appt-info h4 {
+    margin: 0 0 5px 0;
+    color: #4a4244;
+    font-size: 1.1rem;
+}
+
+.appt-datetime {
+    margin: 0;
+    color: #8a8183;
+    font-size: 0.95rem;
+}
+
+.appt-actions {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+}
+
+/* Badges de statut */
+.badge {
+    padding: 6px 12px;
+    border-radius: 20px;
+    font-size: 0.85rem;
+    font-weight: 600;
+}
+
+.badge-green {
+    background-color: #e8f5e9;
+    color: #2e7d32;
+}
+
+.badge-red {
+    background-color: #fdf3f4;
+    color: #d9534f;
+}
+
+/* Bouton spécifique pour l'annulation */
+.btn-cancel {
+    background-color: white;
+    color: #d9534f;
+    border: 1px solid #d9534f;
+}
+
+.btn-cancel:hover {
+    background-color: #d9534f;
+    color: white;
+}
+
+.empty-state {
+    background: white;
+    padding: 40px;
+    text-align: center;
+    border-radius: 15px;
+    color: #8a8183;
+    font-style: italic;
+    border: 1px dashed #e0d5d7;
+}
+
+/* --- APPOINTMENT CARDS (History) --- */
+.appointment-card.past {
+    border-left-color: #8a8183; /* Gris pour les anciens RDV */
+    background-color: #fcf9f9;
+}
+.badge-gray {
+    background-color: #e0d5d7;
+    color: #4a4244;
+}
+
+/* --- BOOKING TAB (Slots) --- */
+.slots-grid {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 10px;
+    margin-top: 15px;
+}
+.slot-btn {
+    background-color: #e5989b;
+    color: white;
+    border: none;
+    padding: 10px 15px;
+    border-radius: 8px;
+    font-weight: 500;
+    cursor: pointer;
+    transition: all 0.2s ease;
+}
+.slot-btn:hover {
+    background-color: #b5838d;
+    transform: translateY(-2px);
+    box-shadow: 0 4px 10px rgba(181, 131, 141, 0.3);
+}
+
+/* --- WEEKLY CALENDAR --- */
+.weekly-calendar {
+    width: 100%;
+    border-collapse: collapse;
+    background: white;
+    font-size: 0.85rem;
+}
+.weekly-calendar th, .weekly-calendar td {
+    border: 1px solid #e0d5d7;
+    padding: 10px 5px;
+    text-align: center;
+    width: 12.5%;
+}
+.weekly-calendar th {
+    background-color: #fcf9f9;
+    color: #6d6875;
+    font-weight: 600;
+}
+.time-cell {
+    font-weight: 500;
+    color: #8a8183;
+    background-color: #fcf9f9;
+}
+.appt-cell {
+    border-radius: 4px;
+    font-weight: bold;
+    color: white;
+    cursor: pointer;
+}
+.appt-cell.active {
+    background-color: #4CAF50; /* Vert (Confirmé) */
+}
+.appt-cell.canceled {
+    background-color: #E53935; /* Rouge (Annulé) */
+}
+.empty-cell {
+    background-color: white;
+}

@@ -1,0 +1,47 @@
+{% extends "base.html" %}
+
+{% block content %}
+<div class="container form-container">
+    <div class="welcome-card form-card">
+        <h2>Rejoindre <span>Healthtime</span></h2>
+        <p>Créez votre compte pour commencer à prendre soin de vous.</p>
+
+        {% if error %}
+            <div class="alert alert-error">
+                {{ error }}
+            </div>
+        {% endif %}
+
+        <form action="/register" method="POST" class="auth-form">
+            
+            <div class="input-group">
+                <label for="name">Nom complet</label>
+                <input type="text" id="name" name="name" placeholder="ex: Jeanne Dupont" required>
+            </div>
+
+            <div class="input-group">
+                <label for="username">Nom d'utilisateur</label>
+                <input type="text" id="username" name="username" placeholder="Choisissez un identifiant" required>
+            </div>
+
+            <div class="input-group">
+                <label for="password">Mot de passe</label>
+                <input type="password" id="password" name="password" placeholder="Créez un mot de passe" required>
+            </div>
+
+            <div class="input-group">
+                <label for="role">Rôle</label>
+                <select id="role" name="role" required style="width: 100%; padding: 12px 15px; border: 1px solid #e0d5d7; border-radius: 10px; font-family: 'Montserrat', sans-serif; font-size: 1rem; color: #6d6875; background-color: #fcf9f9; outline: none;">
+                    <option value="patient">Patient(e)</option>
+                    </select>
+            </div>
+
+            <button type="submit" class="btn btn-full">Créer mon compte</button>
+        </form>
+        
+        <div class="form-footer">
+            <p>Vous avez déjà un compte ? <a href="/login">Se connecter</a></p>
+        </div>
+    </div>
+</div>
+{% endblock %}
