@@ -17,7 +17,7 @@ try:
 
     print("Lecture du fichier schema.sql...")
     # Assure-toi que le chemin correspond bien à ton dossier
-    with open("database/schema.sql", "r", encoding="utf-8") as file:
+    with open("../database/schema.sql", "r", encoding="utf-8") as file:
         sql_script = file.read()
 
     print("Création des tables en cours...")
