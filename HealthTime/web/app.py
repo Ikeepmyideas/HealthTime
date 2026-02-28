@@ -2,11 +2,23 @@ import sys
 import os
 sys.path.append(os.path.abspath(os.path.join(os.path.dirname(__file__), "..")))
 
+from flask import render_template, request, redirect, url_for, flash, session
 from flask import Flask, render_template, request, redirect, session
 from dao.user_dao import UserDAO
 from dao.appointment_dao import AppointmentDAO
 from dao.admin_dao import AdminDAO
 from dotenv import load_dotenv
+from datetime import datetime, timedelta
+
+from datetime import datetime, timedelta
+from dao.appointment_dao import AppointmentDAO 
+import calendar
+from dao.doctor_dao import DoctorDAO
+import random
+import string
+from flask import request, redirect, session, render_template, flash
+from flask import jsonify, request 
+from flask import session, redirect, flash
 
 load_dotenv()
 
@@ -42,10 +54,6 @@ def login():
 
     return render_template("login.html")
 
-from datetime import datetime, timedelta
-
-from datetime import datetime, timedelta
-from dao.appointment_dao import AppointmentDAO 
 
 @app.route("/patient_dashboard")
 def patient_dashboard():
@@ -54,96 +62,93 @@ def patient_dashboard():
 
     user = session["user"]
     tab = request.args.get("tab", "dashboard")
-    upcoming_alerts = AppointmentDAO.get_upcoming_appointments(user["id"], user["role"], hours=24)
-    dao = AppointmentDAO()
-    appointments = dao.get_patient_appointments(user["id"])
     now = datetime.now()
+    dao = AppointmentDAO()
+
+    upcoming_alerts = dao.get_upcoming_appointments(user["id"], "patient", hours=24)
     
-    upcoming_appts = []
-    past_appts = []
-    appt_map = {}
+    data = {
+        "user": user, "tab": tab, "upcoming_alerts": upcoming_alerts, "now": now,
+        "specialties": [], "filtered_doctors": [], "slots": [], "upcoming": [], "past": [], "appt_map": {},
+        "week_offset": int(request.args.get("week_offset", 0))
+    }
 
-    for a in appointments:
-        try:
-            date_str = str(a["date"]).strip()
-            time_str = str(a["time"]).strip()[:5]
-            appt_dt = datetime.strptime(f"{date_str} {time_str}", "%Y-%m-%d %H:%M")
+    if tab == "dashboard":
+        appointments = dao.get_patient_appointments(user["id"])
+        for a in appointments:
+            appt_dt = datetime.strptime(f"{a['date']} {a['time']}", "%Y-%m-%d %H:%M")
+            a["is_canceled"] = str(a.get("status", "")).lower() in ("canceled", "cancel")
+            if appt_dt >= now: data["upcoming"].append(a)
+            else: data["past"].append(a)
+
+    elif tab == "booking":
+        data["specialties"] = AdminDAO.get_specialties()
+        spec_id = request.args.get("specialty_id")
+        doc_id = request.args.get("doctor_id")
+        date_str = request.args.get("date")
+
+        if spec_id:
+            data["selected_specialty"] = spec_id
+            data["filtered_doctors"] = UserDAO.search_doctors_by_specialty(spec_id)
+            if date_str:
+                data["selected_date"] = date_str
+                date_obj = datetime.strptime(date_str, "%Y-%m-%d").date()
+                if doc_id and doc_id != "any":
+                    data["selected_doctor"] = doc_id
+                    data["slots"] = dao.get_available_slots_for_doctor(doc_id, date_obj)
+                else:
+                    data["selected_doctor"] = "any"
+                    data["slots"] = dao.get_available_slots_by_specialty(spec_id, date_obj)
+
+    elif tab == "calendar":
+        monday = (now.date() - timedelta(days=now.date().weekday())) + timedelta(weeks=data["week_offset"])
+        data["week_dates"] = [monday + timedelta(days=i) for i in range(7)]
+        
+        appointments = dao.get_patient_appointments(user["id"])
+        for a in appointments:
+            appt_dt = datetime.strptime(f"{a['date']} {a['time']}", "%Y-%m-%d %H:%M")
+            d_obj = appt_dt.date()
+            h_obj = appt_dt.hour
             
-            a["is_canceled"] = str(a.get("status", "")).lower() in ("canceled", "cancelled", "cancel")
-            a["time_short"] = time_str
+            a["is_canceled"] = str(a.get("status", "")).lower() in ("canceled", "cancel")
+            a["is_past"] = appt_dt < now
+            a["is_cancelable"] = (not a["is_canceled"]) and (not a["is_past"])
+            a["time_short"] = a["time"]
             
-            if appt_dt >= now:
-                upcoming_appts.append(a)
-            else:
-                past_appts.append(a)
-                
-            date_obj = appt_dt.date()
-            hour = appt_dt.hour
-            appt_map[(date_obj, hour)] = a
-            
-        except Exception as e:
-            continue
-            
-    upcoming_appts.sort(key=lambda x: x["date"])
-    past_appts.sort(key=lambda x: x["date"], reverse=True)
+            data["appt_map"][(d_obj, h_obj)] = a
 
-    doctors = dao.get_active_doctors()
-    
-    selected_doc = request.args.get("doc_id")
-    selected_date = request.args.get("date")
-    slots = []
-    
-    if selected_doc and selected_date:
-        date_obj = datetime.strptime(selected_date, "%Y-%m-%d").date()
-        slots = dao.get_available_slots_for_doctor(selected_doc, date_obj)
+        data["doctors"] = dao.get_active_doctors()
 
+    return render_template("patient/dashboard.html", **data)
 
-    week_offset = int(request.args.get("week_offset", 0))
-    today = datetime.today().date()
-    monday = today - timedelta(days=today.weekday()) + timedelta(weeks=week_offset)
-    week_dates = [monday + timedelta(days=i) for i in range(7)]
-
-    return render_template(
-        "patient/dashboard.html",
-        user=user,
-        tab=tab,
-        upcoming=upcoming_appts,
-        past=past_appts,
-        doctors=doctors,
-        selected_doc=selected_doc,
-        selected_date=selected_date,
-        slots=slots,
-        week_dates=week_dates,
-        week_offset=week_offset,
-        appt_map=appt_map,
-        upcoming_alerts=upcoming_alerts,
-        now=now
-    )
 
 @app.route("/book_appointment", methods=["POST"])
 def book_appointment():
-    if "user" not in session: 
-        return redirect("/login")
+    if "user" not in session: return redirect("/login")
     
-    user_id = session["user"]["id"]
+    patient_id = session["user"]["id"]
     doc_id = request.form.get("doc_id")
     date = request.form.get("date")
     time = request.form.get("time")
-    
-    success, msg = AppointmentDAO().create_appointment(user_id, doc_id, date, time)
-    
-    return redirect("/patient_dashboard?tab=dashboard")
+    urgent = request.form.get("urgent") == "on"
+
+    if datetime.strptime(f"{date} {time}", "%Y-%m-%d %H:%M") < datetime.now():
+        flash("Impossible de réserver dans le passé.", "danger")
+        return redirect(url_for("patient_dashboard", tab="booking"))
+
+    success, msg = AppointmentDAO.create_appointment(patient_id, doc_id, date, time, urgent=urgent)
+    if success:
+        flash("Rendez-vous confirmé !", "success")
+        return redirect("/patient_dashboard?tab=dashboard")
+    flash(f"Erreur : {msg}", "danger")
+    return redirect("/patient_dashboard?tab=booking")
 
 @app.route("/cancel_appointment/<int:appt_id>", methods=["POST"])
 def cancel_appointment(appt_id):
-    if "user" not in session: 
-        return redirect("/login")
-    
-    user_id = session["user"]["id"]
-    
-    AppointmentDAO().cancel_appointment(appt_id, user_id)
-    
-    return redirect(request.referrer or "/patient_dashboard?tab=dashboard")
+    if "user" not in session: return redirect("/login")
+    success, msg = AppointmentDAO.cancel_appointment(appt_id, session["user"]["id"])
+    flash("Rendez-vous annulé." if success else msg, "success" if success else "danger")
+    return redirect(request.referrer or "/patient_dashboard")
 
 @app.route("/register", methods=["GET", "POST"])
 def register():
@@ -192,84 +197,67 @@ def search():
     )
 
 
-import calendar
-from dao.doctor_dao import DoctorDAO
 
 @app.route("/doctor_dashboard")
 def doctor_dashboard():
-
-    # 🔐 Sécurité
     if "user" not in session or session["user"]["role"] != "doctor":
         return redirect("/login")
 
     user = session["user"]
     tab = request.args.get("tab", "dashboard")
-    upcoming_appts = AppointmentDAO.get_upcoming_appointments(user["id"], user["role"], hours=24)
-    year = int(request.args.get("year", datetime.today().year))
-    month = int(request.args.get("month", datetime.today().month))
-
+    now = datetime.now()
+    
+    year = int(request.args.get("year", now.year))
+    month = int(request.args.get("month", now.month))
     cal = calendar.monthcalendar(year, month)
-
-
+    
     week_offset = int(request.args.get("week_offset", 0))
-    today = datetime.today().date()
-
-    monday = today - timedelta(days=today.weekday()) + timedelta(weeks=week_offset)
+    monday = (now.date() - timedelta(days=now.date().weekday())) + timedelta(weeks=week_offset)
     week_dates = [monday + timedelta(days=i) for i in range(7)]
     slots = DoctorDAO.get_doctor_slots(user["id"])
-    slot_map = {}
-
-    for s in slots:
-        slot_date = s["slot_date"]
-        if isinstance(slot_date, str):
-            slot_date = datetime.strptime(slot_date, "%Y-%m-%d").date()
-            
-        slot_hour = int(s["slot_hour"])
-
-        key = f"{slot_date.strftime('%Y-%m-%d')}-{slot_hour}"
-        slot_map[key] = s["status"]
+    slot_map = {f"{s['slot_date']}-{s['slot_hour']}": s["status"] for s in slots}
 
     appointments = AppointmentDAO.get_doctor_appointments(user["id"])
     appointment_map = {}
 
     for a in appointments:
-        appt_dt = a.get("appointment_date")
-        if not appt_dt:
-            continue
-
+        appt_dt = a['appointment_date']
         if isinstance(appt_dt, str):
-            appt_dt = datetime.strptime(appt_dt, "%Y-%m-%d %H:%M:%S")
+            try:
+                appt_dt = datetime.strptime(appt_dt, "%Y-%m-%d %H:%M:%S")
+            except:
+                appt_dt = datetime.strptime(appt_dt, "%Y-%m-%d %H:%M")
 
-        date_obj = appt_dt.date()
-        hour = appt_dt.hour
+        key = f"{appt_dt.strftime('%Y-%m-%d')}-{appt_dt.hour}"
+        
+        a["is_urgent"] = a.get("urgent", False)
+        
+        a["is_canceled"] = str(a.get("status", "")).lower() in ("canceled", "cancel", "canceled_by_doctor")
+        a["is_past"] = appt_dt < now
+        
+        a["is_cancelable"] = (not a["is_canceled"]) and (not a["is_past"])
+        a["time_short"] = appt_dt.strftime("%H:%M")
+        a["date_str"] = appt_dt.strftime("%d/%m/%Y")
+        
+        appointment_map[key] = a
+    upcoming_appts = AppointmentDAO.get_upcoming_appointments(user["id"], "doctor", hours=24)
 
-        key = f"{date_obj.strftime('%Y-%m-%d')}-{hour}"
+    data = {
+        "user": user,
+        "tab": tab,
+        "year": year,
+        "month": month,
+        "cal": cal,
+        "week_dates": week_dates,
+        "week_offset": week_offset,
+        "slot_map": slot_map,
+        "appt_map": appointment_map,
+        "upcoming_appts": upcoming_appts,
+        "now": now
+    }
+    
+    return render_template("doctor/dashboard.html", **data)
 
-        appointment_map[key] = {
-            "id": a["id"],
-            "patient_name": a["patient_name"], 
-            "patient_email": a["patient_email"], 
-            "patient_phone": a["patient_phone"],
-            "date": date_obj.strftime("%Y-%m-%d"),
-            "time_short": appt_dt.strftime("%H:%M"), 
-            "status": a["status"]
-        }
-
-
-    return render_template(
-        "doctor/dashboard.html",
-        user=user,
-        tab=tab,
-        year=year,
-        month=month,
-        cal=cal,
-        week_offset=week_offset,
-        week_dates=week_dates,
-        slot_map=slot_map,
-        appt_map=appointment_map,
-        upcoming_appts=upcoming_appts,
-        now=datetime.now()
-    )
 
 @app.route("/doctor_create_slots", methods=["POST"])
 def doctor_create_slots():
@@ -302,9 +290,6 @@ def doctor_cancel_appt(appt_id):
     return redirect(request.referrer or "/doctor_dashboard?tab=weekly_planner")
 
 
-import random
-import string
-from flask import request, redirect, session, render_template, flash
 
 def generate_password(length=8):
     chars = string.ascii_letters + string.digits
@@ -317,34 +302,67 @@ def admin_dashboard():
 
     user = session["user"]
     tab = request.args.get("tab", "dashboard")
-    
-    specialties = []
-    doctors = []
     search_query = request.args.get("search", "").strip().lower()
 
-    if tab == "add_doctor":
-        specialties = AdminDAO.get_specialties()
-        
+    data = {
+        "user": user,
+        "tab": tab,
+        "search_query": search_query,
+        "stats": None,
+        "all_users": [],
+        "doctors": [],
+        "specialties": []
+    }
+
+    if tab == "dashboard":
+        users_list = AdminDAO.get_all_users()
+        data["stats"] = {
+            "total_users": len(users_list),
+            "total_doctors": len([u for u in users_list if u['role'] == 'doctor']),
+            "total_patients": len([u for u in users_list if u['role'] == 'patient'])
+        }
+
+    elif tab == "view_users":
+        data["all_users"] = AdminDAO.get_all_users()
+
     elif tab == "view_doctors":
-        all_doctors = AdminDAO.get_doctors()
+        all_docs = AdminDAO.get_doctors()
         if search_query:
-            doctors = [
-                d for d in all_doctors 
+            data["doctors"] = [
+                d for d in all_docs 
                 if search_query in d["name"].lower() 
                 or search_query in d["username"].lower() 
                 or search_query == str(d["id"])
             ]
         else:
-            doctors = all_doctors
+            data["doctors"] = all_docs
 
-    return render_template(
-        "admin/dashboard.html",
-        user=user,
-        tab=tab,
-        specialties=specialties,
-        doctors=doctors,
-        search_query=search_query
-    )
+    elif tab == "add_doctor":
+        data["specialties"] = AdminDAO.get_specialties()
+
+    elif tab == "specialties":
+        data["specialties"] = AdminDAO.get_specialties()
+
+    return render_template("admin/dashboard.html", **data)
+
+
+@app.route("/admin_toggle_user/<int:user_id>", methods=["POST"])
+def admin_toggle_user(user_id):
+    if "user" not in session or session["user"]["role"] != "admin":
+        return redirect("/login")
+
+    current_status = request.form.get("current_status")
+    target_tab = request.form.get("tab", "view_users")
+    
+    success, msg = AdminDAO.toggle_user_status(user_id, current_status)
+    
+    if success:
+        flash("Le statut de l'utilisateur a été mis à jour.", "success")
+    else:
+        flash(f"Erreur : {msg}", "danger")
+    
+    return redirect(url_for('admin_dashboard', tab=target_tab))
+
 
 @app.route("/admin_add_doctor", methods=["POST"])
 def admin_add_doctor():
@@ -385,7 +403,7 @@ def admin_doctor_action(action, doctor_id):
         
     return redirect("/admin_dashboard?tab=view_doctors")
 
-from flask import jsonify, request 
+
 
 @app.route("/api/toggle_slot", methods=["POST"])
 def api_toggle_slot():
@@ -402,13 +420,43 @@ def api_toggle_slot():
     return jsonify({"status": "success", "action": action})
 
 
-from flask import session, redirect, flash
 
 @app.route("/logout")
 def logout():
     session.clear()
     flash("Vous avez été déconnecté avec succès.", "success")
     return redirect("/")
+
+
+
+@app.route("/admin_add_specialty", methods=["POST"])
+def admin_add_specialty():
+    if "user" not in session or session["user"]["role"] != "admin":
+        return redirect("/login")
+
+    name = request.form.get("name")
+    if name:
+        success, msg = AdminDAO.add_specialty(name)
+        if success:
+            flash(f"Spécialité '{name}' ajoutée.", "success")
+        else:
+            flash(f"Erreur : {msg}", "danger")
+    
+    return redirect(url_for('admin_dashboard', tab='specialties'))
+
+@app.route("/admin_delete_specialty/<int:spec_id>", methods=["POST"])
+def admin_delete_specialty(spec_id):
+    if "user" not in session or session["user"]["role"] != "admin":
+        return redirect("/login")
+
+    success, msg = AdminDAO.delete_specialty(spec_id)
+    if success:
+        flash("Spécialité supprimée.", "success")
+    else:
+        flash(msg, "warning") 
+    
+    return redirect(url_for('admin_dashboard', tab='specialties'))
+
 
 if __name__ == "__main__":
     app.run(debug=True)
