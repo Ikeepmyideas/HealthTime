@@ -4,6 +4,7 @@ import calendar
 from dao.doctor_dao import DoctorDAO
 from datetime import datetime, timedelta
 from dao.appointment_dao import AppointmentDAO
+calendar.setfirstweekday(calendar.MONDAY)
 
 
 class DoctorDashboard:
@@ -27,7 +28,9 @@ class DoctorDashboard:
                 "card": "#2C2C2C",
                 "sidebar": "#252526",
                 "text": "#EAEAEA",
-                "accent": "#4FC3F7"
+                "accent": "#4FC3F7",
+                "urgent": "#f1c40f", 
+                "canceled": "#95a5a6"  
             }
         else:
             self.colors = {
@@ -35,7 +38,9 @@ class DoctorDashboard:
                 "card": "#FFFFFF",
                 "sidebar": "#E0E0E0",
                 "text": "#000000",
-                "accent": "#4CAF50"
+                "accent": "#4CAF50",
+                "urgent": "#f1c40f",
+                "canceled": "#95a5a6"
             }
 
         self.root.configure(bg=self.colors["bg"])
@@ -69,7 +74,7 @@ class DoctorDashboard:
 
         tk.Label(
             self.sidebar,
-            text=f"👨‍⚕️ Dr {self.user['name']}",
+            text=f" Dr {self.user['name']}",
             bg=self.colors["sidebar"],
             fg=self.colors["accent"],
             font=("Helvetica", 14, "bold")
@@ -158,44 +163,25 @@ class DoctorDashboard:
         ).pack(pady=15)
 
     def show_calendar_planner(self):
+        """Vue permettant de créer massivement des créneaux de disponibilité jusqu'à 22h"""
         self.clear_main()
-
         container = tk.Frame(self.main, bg=self.colors["bg"])
         container.pack(fill="both", expand=True, padx=40, pady=20)
 
-        tk.Label(
-            container,
-            text=" Create Availability (Calendar Mode)",
-            font=("Helvetica", 18, "bold"),
-            bg=self.colors["bg"]
-        ).pack(pady=10)
+        tk.Label(container, text="Créer des Disponibilités", font=("Helvetica", 18, "bold"), bg=self.colors["bg"]).pack(pady=10)
 
         top_frame = tk.Frame(container, bg=self.colors["bg"])
         top_frame.pack(pady=10)
 
-        month_var = tk.IntVar(value=datetime.today().month)
-        year_var = tk.IntVar(value=datetime.today().year)
+        month_var = tk.StringVar(value=str(datetime.today().month))
+        year_var = tk.StringVar(value=str(datetime.today().year))
 
         tk.Label(top_frame, text="Month", bg=self.colors["bg"]).pack(side="left")
-
-        month_combo = ttk.Combobox(
-            top_frame,
-            textvariable=month_var,
-            values=list(range(1, 13)),
-            width=5,
-            state="readonly"
-        )
+        month_combo = ttk.Combobox(top_frame, textvariable=month_var, values=list(range(1, 13)), width=5, state="readonly")
         month_combo.pack(side="left", padx=5)
 
         tk.Label(top_frame, text="Year", bg=self.colors["bg"]).pack(side="left")
-
-        year_combo = ttk.Combobox(
-            top_frame,
-            textvariable=year_var,
-            values=list(range(2024, 2035)),
-            width=7,
-            state="readonly"
-        )
+        year_combo = ttk.Combobox(top_frame, textvariable=year_var, values=list(range(2024, 2035)), width=7, state="readonly")
         year_combo.pack(side="left", padx=5)
 
         days_frame = tk.Frame(container, bg=self.colors["bg"])
@@ -212,152 +198,108 @@ class DoctorDashboard:
                 btn.config(bg="#4CAF50")
 
         def render_calendar(event=None):
-            for widget in days_frame.winfo_children():
+            """Rend le calendrier de manière fiable en lisant directement les widgets"""
+            for widget in days_frame.winfo_children(): 
                 widget.destroy()
-
             selected_days.clear()
+            
+            try:
+                year = int(year_combo.get())
+                month = int(month_combo.get())
+            except (ValueError, tk.TclError):
+                return
 
-            year = year_var.get()
-            month = month_var.get()
-
+            today_date = datetime.today().date()
             cal = calendar.monthcalendar(year, month)
-            week_days = ["Mon", "Tue", "Wed", "Thu", "Fri", "Sat", "Sun"]
+            days_names = ["Mon", "Tue", "Wed", "Thu", "Fri", "Sat", "Sun"]
 
-            for col, name in enumerate(week_days):
-                tk.Label(
-                    days_frame,
-                    text=name,
-                    bg=self.colors["accent"],
-                    fg="white",
-                    width=5
-                ).grid(row=0, column=col, padx=3, pady=3)
+            # En-têtes de colonnes
+            for col, name in enumerate(days_names):
+                tk.Label(days_frame, text=name, bg=self.colors["accent"], fg="white", width=6, height=2).grid(row=0, column=col, padx=2, pady=2)
 
-            for row_index, week in enumerate(cal):
-                for col_index, day in enumerate(week):
-
+            # Rendu des boutons de jours
+            for r, week in enumerate(cal):
+                for c, day in enumerate(week):
                     if day == 0:
-                        tk.Label(
-                            days_frame,
-                            text="",
-                            width=5,
-                            bg=self.colors["bg"]
-                        ).grid(row=row_index + 1, column=col_index)
-                    else:
-                        btn = tk.Button(
-                            days_frame,
-                            text=str(day),
-                            width=5,
-                            bg="white"
-                        )
-                        btn.grid(row=row_index + 1,
-                                column=col_index,
-                                padx=3,
-                                pady=3)
+                        tk.Label(days_frame, text="", width=6, height=2, bg=self.colors["bg"]).grid(row=r+1, column=c)
+                        continue
+                    
+                    # Vérifier si le jour est passé
+                    current_date = datetime(year, month, day).date()
+                    is_past = current_date < today_date
+                    
+                    bg_color = "white"
+                    fg_color = "black"
+                    if current_date == today_date: bg_color = "#BBDEFB"
+                    if is_past: 
+                        bg_color = "#E0E0E0"
+                        fg_color = "#9E9E9E"
 
-                        btn.config(
-                            command=lambda d=day, b=btn: toggle_day(d, b)
-                        )
+                    btn = tk.Button(days_frame, text=str(day), width=6, height=2, bg=bg_color, fg=fg_color, 
+                                   state="disabled" if is_past else "normal")
+                    btn.grid(row=r+1, column=c, padx=2, pady=2)
+                    
+                    if not is_past:
+                        btn.config(command=lambda d=day, b=btn: toggle_day(d, b))
 
         month_combo.bind("<<ComboboxSelected>>", render_calendar)
         year_combo.bind("<<ComboboxSelected>>", render_calendar)
-
         render_calendar()
 
-        tk.Label(
-            container,
-            text="Select Hours (7h → 22h)",
-            font=("Helvetica", 14, "bold"),
-            bg=self.colors["bg"]
-        ).pack(pady=10)
-
         hours_frame = tk.Frame(container, bg=self.colors["bg"])
-        hours_frame.pack()
-
+        hours_frame.pack(pady=10)
         selected_hours = set()
 
-        def toggle_hour(hour, btn):
-            if hour in selected_hours:
-                selected_hours.remove(hour)
-                btn.config(bg="white")
+        def toggle_hour(h, b):
+            if h in selected_hours:
+                selected_hours.remove(h)
+                b.config(bg="white")
             else:
-                selected_hours.add(hour)
-                btn.config(bg="#4CAF50")
+                selected_hours.add(h)
+                b.config(bg="#4CAF50")
 
         for hour in range(7, 23):
-            btn = tk.Button(
-                hours_frame,
-                text=f"{hour}:00",
-                width=6,
-                bg="white"
-            )
-            btn.pack(side="left", padx=4, pady=4)
+            btn = tk.Button(hours_frame, text=f"{hour}h", width=6, bg="white")
+            btn.pack(side="left", padx=2)
+            btn.config(command=lambda h=hour, b=btn: toggle_hour(h, b))
 
-            btn.config(
-                command=lambda h=hour, b=btn: toggle_hour(h, b)
-            )
-
-        def save_slots():
-
+        def save():
             if not selected_days or not selected_hours:
-                messagebox.showwarning("Warning", "Select days and hours")
+                messagebox.showwarning("Attention", "Sélectionnez au moins un jour et une heure.")
                 return
 
-            year = year_var.get()
-            month = month_var.get()
+            errors = []
 
-            for day in selected_days:
-                for hour in selected_hours:
+            for d in selected_days:
+                for h in selected_hours:
+                    year = int(year_combo.get())
+                    month = int(month_combo.get())
 
-                    date_str = f"{year}-{month:02d}-{day:02d}"
-
-                    DoctorDAO.create_time_slot_day_hour(
-                        self.user["id"],
-                        date_str,
-                        hour
+                    date_str = f"{year}-{month:02d}-{d:02d}"
+                    success, msg = DoctorDAO.create_time_slot_day_hour(
+                        self.user["id"], date_str, h
                     )
 
-            messagebox.showinfo("Success", "Availability saved!")
+                    if not success:
+                        errors.append(f"{date_str} {h}h → {msg}")
+
+            if errors:
+                messagebox.showerror("Erreur", "\n".join(errors))
+            else:
+                messagebox.showinfo("Succès", "Disponibilités enregistrées !")
+
+            self.show_weekly_planner()
 
         tk.Button(
             container,
-            text=" Save Availability",
+            text=" Enregistrer les disponibilités",
             bg="#2196F3",
             fg="white",
-            command=save_slots
+            font=("Helvetica", 11, "bold"),
+            command=save
         ).pack(pady=20)
 
-        legend_frame = tk.Frame(container, bg=self.colors["bg"])
-        legend_frame.pack(pady=10, anchor="w")
-
-        tk.Label(
-            legend_frame,
-            text="Legend :",
-            font=("Helvetica", 12, "bold"),
-            bg=self.colors["bg"]
-        ).pack(anchor="w")
-
-        legend_data = [
-            ("🟢", "Available"),
-            ("🔴", "Booked with patient"),
-            ("⚫", "Outside working hours")
-        ]
-
-        for icon, text in legend_data:
-            row = tk.Frame(legend_frame, bg=self.colors["bg"])
-            row.pack(anchor="w", pady=2)
-
-            tk.Label(
-                row,
-                text=icon,
-                bg=self.colors["bg"],
-                font=("Helvetica", 12)
-            ).pack(side="left", padx=5)
-
-            tk.Label(
-                row,
-                text=text,
-                bg=self.colors["bg"]
-            ).pack(side="left")
+   
 
 
     def show_schedule(self):
@@ -407,29 +349,16 @@ class DoctorDashboard:
             ).pack(side="right", padx=20)
 
     def show_appointments(self):
+        """Liste défilante des rendez-vous avec badges d'état"""
         self.clear_main()
-
         container = tk.Frame(self.main, bg=self.colors["bg"])
         container.pack(fill="both", expand=True, padx=40, pady=20)
-
-        tk.Label(
-            container,
-            text="📋 My Appointments (List View)",
-            font=("Helvetica", 18, "bold"),
-            bg=self.colors["bg"],
-            fg=self.colors["accent"]
-        ).pack(pady=(10, 20), anchor="w")
+        tk.Label(container, text=" My Appointments (List View)", font=("Helvetica", 18, "bold"), bg=self.colors["bg"], fg=self.colors["accent"]).pack(pady=(10, 20), anchor="w")
 
         appointments = AppointmentDAO.get_doctor_appointments(self.user["id"])
 
         if not appointments:
-            tk.Label(
-                container,
-                text="No appointments found.",
-                bg=self.colors["bg"],
-                fg="gray",
-                font=("Helvetica", 12)
-            ).pack(pady=20)
+            tk.Label(container, text="Aucun rendez-vous trouvé.", bg=self.colors["bg"], fg="gray", font=("Helvetica", 12)).pack(pady=20)
             return
 
         header_frame = tk.Frame(container, bg=self.colors["sidebar"])
@@ -450,7 +379,6 @@ class DoctorDashboard:
         canvas.configure(yscrollcommand=scrollbar.set)
 
         list_frame = tk.Frame(canvas, bg=self.colors["bg"])
-        
         canvas_frame_window = canvas.create_window((0, 0), window=list_frame, anchor="nw")
 
         def on_frame_configure(event):
@@ -461,23 +389,15 @@ class DoctorDashboard:
             canvas.itemconfig(canvas_frame_window, width=event.width)
         canvas.bind("<Configure>", on_canvas_configure)
 
-        def _on_mousewheel(event):
-            canvas.yview_scroll(int(-1*(event.delta/120)), "units")
-            
-        canvas.bind_all("<MouseWheel>", _on_mousewheel)
-
         for appt in appointments:
             row = tk.Frame(list_frame, bg=self.colors["card"], pady=10)
             row.pack(fill="x", pady=5, padx=(0, 5))
 
             appt_dt = appt["appointment_date"]
-            if isinstance(appt_dt, str):
-                appt_dt = datetime.strptime(appt_dt, "%Y-%m-%d %H:%M:%S")
+            if isinstance(appt_dt, str): appt_dt = datetime.strptime(appt_dt, "%Y-%m-%d %H:%M:%S")
             
-            date_str = appt_dt.strftime("%Y-%m-%d")
-            time_str = appt_dt.strftime("%H:%M")
+            date_str, time_str = appt_dt.strftime("%Y-%m-%d"), appt_dt.strftime("%H:%M")
             status = appt["status"]
-
             status_color = "#2ecc71" if status.lower() in ["scheduled", "confirmé"] else "#e74c3c"
 
             tk.Label(row, text=appt["patient_name"], bg=self.colors["card"], font=("Helvetica", 11), width=20, anchor="w").pack(side="left", padx=10)
@@ -489,24 +409,11 @@ class DoctorDashboard:
 
             if is_future and not is_canceled:
                 tk.Button(
-                    row,
-                    text="Cancel",
-                    bg="#e74c3c",
-                    fg="white",
-                    relief="flat",
-                    padx=10,
+                    row, text="Cancel", bg="#e74c3c", fg="white", relief="flat", padx=10,
                     command=lambda a_id=appt["id"]: self.cancel_appointment_from_list(a_id)
                 ).pack(side="right", padx=20)
-                
             elif not is_future and not is_canceled:
-                tk.Label(
-                    row,
-                    text="✅ Terminé",
-                    bg=self.colors["card"],
-                    fg="gray",
-                    font=("Helvetica", 10, "italic")
-                ).pack(side="right", padx=20)
-                
+                tk.Label(row, text="✅ Terminé", bg=self.colors["card"], fg="gray", font=("Helvetica", 10, "italic")).pack(side="right", padx=20)
 
     def cancel_appointment_from_list(self, appointment_id):
             confirm = messagebox.askyesno(
@@ -525,202 +432,194 @@ class DoctorDashboard:
             else:
                 messagebox.showerror("Error", message)
 
-    def show_weekly_planner(self, week_offset=0):
 
+    def show_weekly_planner(self, week_offset=0):
+        """Vue calendrier hebdomadaire corrigée"""
         self.clear_main()
 
         container = tk.Frame(self.main, bg=self.colors["bg"])
-        container.pack(fill="both", expand=True, padx=20, pady=20)
+        container.pack(fill="both", expand=True)
+
+        canvas = tk.Canvas(container, bg=self.colors["bg"], highlightthickness=0)
+        scrollbar = ttk.Scrollbar(container, orient="vertical", command=canvas.yview)
+        scroll_frame = tk.Frame(canvas, bg=self.colors["bg"])
+
+        scroll_frame.bind(
+            "<Configure>",
+            lambda e: canvas.configure(scrollregion=canvas.bbox("all"))
+        )
+
+        canvas.create_window((0, 0), window=scroll_frame, anchor="nw")
+        canvas.configure(yscrollcommand=scrollbar.set)
+
+        canvas.pack(side="left", fill="both", expand=True)
+        scrollbar.pack(side="right", fill="y")
 
         slots = DoctorDAO.get_doctor_slots(self.user["id"])
+        appointments = AppointmentDAO.get_doctor_appointments(self.user["id"])
 
         slot_map = {}
-        all_dates = []
-
         for s in slots:
-            slot_date = s["slot_date"]
+            d = s["slot_date"]
+            if isinstance(d, str):
+                d = datetime.strptime(d, "%Y-%m-%d").date()
+            slot_map[(d, int(s["slot_hour"]))] = s["status"]
 
-            if isinstance(slot_date, str):
-                slot_date = datetime.strptime(slot_date, "%Y-%m-%d").date()
-
-            slot_hour = int(s["slot_hour"])
-
-            slot_map[(slot_date, slot_hour)] = s["status"]
-            all_dates.append(slot_date)
+        urgent_map = {}
+        for a in appointments:
+            dt = a["appointment_date"]
+            if isinstance(dt, str):
+                dt = datetime.strptime(dt, "%Y-%m-%d %H:%M:%S")
+            urgent_map[(dt.date(), dt.hour)] = a.get("urgent", False)
 
         base_date = datetime.today().date()
-
-        monday = base_date - timedelta(days=base_date.weekday())
-        monday += timedelta(weeks=week_offset)
-
+        monday = base_date - timedelta(days=base_date.weekday()) + timedelta(weeks=week_offset)
         week_dates = [monday + timedelta(days=i) for i in range(7)]
 
-        header_frame = tk.Frame(container, bg=self.colors["bg"])
-        header_frame.pack(pady=10)
+        header = tk.Frame(scroll_frame, bg=self.colors["bg"])
+        header.pack(pady=10, fill="x")
 
-        tk.Button(
-            header_frame,
-            text="⬅ Previous",
-            command=lambda: self.show_weekly_planner(week_offset - 1)
-        ).pack(side="left", padx=10)
+        tk.Button(header, text="⬅ Previous",
+                command=lambda: self.show_weekly_planner(week_offset - 1)).pack(side="left")
 
-        tk.Label(
-            header_frame,
-            text=f"Week of {monday.strftime('%d %B %Y')}",
-            font=("Helvetica", 18, "bold"),
-            bg=self.colors["bg"]
-        ).pack(side="left", padx=20)
+        tk.Label(header,
+                text=f"Week of {monday.strftime('%d %B %Y')}",
+                font=("Helvetica", 16, "bold"),
+                bg=self.colors["bg"]).pack(side="left", expand=True)
 
-        tk.Button(
-            header_frame,
-            text="Next ➡",
-            command=lambda: self.show_weekly_planner(week_offset + 1)
-        ).pack(side="left", padx=10)
+        tk.Button(header, text="Next ➡",
+                command=lambda: self.show_weekly_planner(week_offset + 1)).pack(side="right")
+
+        # === TABLE ===
+        table_container = tk.Frame(scroll_frame, bg=self.colors["bg"])
+        table_container.pack(pady=20)
+
+        table = tk.Frame(table_container, bg=self.colors["bg"])
+        table.pack(anchor="center")
 
         days_names = ["Mon", "Tue", "Wed", "Thu", "Fri", "Sat", "Sun"]
 
-        table = tk.Frame(container, bg=self.colors["bg"])
-        table.pack()
-
-        for col, day in enumerate(days_names):
+        for col, name in enumerate(days_names):
             tk.Label(
                 table,
-                text=f"{day}\n{week_dates[col].strftime('%d-%m')}",
+                text=f"{name}\n{week_dates[col].strftime('%d-%m')}",
                 bg=self.colors["accent"],
                 fg="white",
                 width=14,
                 height=2
-            ).grid(row=0, column=col + 1)
+            ).grid(row=0, column=col + 1, padx=1, pady=1)
 
-        for row_index, hour in enumerate(range(7, 23)):
-
+        for row_idx, hour in enumerate(range(7, 23)):
             tk.Label(
                 table,
                 text=f"{hour}:00",
                 bg=self.colors["card"],
                 width=8
-            ).grid(row=row_index + 1, column=0)
+            ).grid(row=row_idx + 1, column=0, padx=1, pady=1)
 
             for col, current_date in enumerate(week_dates):
 
                 key = (current_date, hour)
+                status = slot_map.get(key)   
+                is_urgent_val = urgent_map.get(key, False)
 
-                if key in slot_map:
-                    status = slot_map[key]
+                color = "#2c3e50"
+                cursor = ""
 
-                    if status == "available":
-                        color = "#2ecc71"  
-                    elif status == "booked":
-                        color = "#e74c3c"  
+                if status == "available":
+                    color = "#2ecc71"
+
+                elif status == "booked":
+                    if is_urgent_val:
+                        color = self.colors["urgent"]
                     else:
-                        color = "#f39c12"  
-                else:
-                    color = "#2c3e50"  
+                        color = "#e74c3c"
+                    cursor = "hand2"
 
                 cell = tk.Frame(
                     table,
-                    width=100,
-                    height=40,
+                    width=90,
+                    height=35,
                     bg=color,
-                    relief="solid",
+                    relief="raised",
                     borderwidth=1
                 )
+                cell.grid(row=row_idx + 1, column=col + 1, padx=2, pady=2)
+                cell.grid_propagate(False)
 
-                cell.grid(row=row_index + 1,
-                column=col + 1,
-                padx=2,
-                pady=2)
-
-                if key in slot_map and status == "booked":
+                if status == "booked":
                     cell.bind(
                         "<Button-1>",
-                        lambda e, d=current_date, h=hour:
-                            self.show_appointment_details(d, h)
+                        lambda e, d=current_date, h=hour, u=is_urgent_val:
+                        self.show_appointment_details(d, h, u)
                     )
+                    cell.config(cursor=cursor)
 
-        legend_frame = tk.Frame(container, bg=self.colors["bg"])
-        legend_frame.pack(pady=20, anchor="w")
+        legend = tk.Frame(scroll_frame, bg=self.colors["bg"])
+        legend.pack(pady=20, anchor="w")
 
-        tk.Label(
-            legend_frame,
-            text="Legend :",
-            font=("Helvetica", 12, "bold"),
-            bg=self.colors["bg"]
-        ).pack(anchor="w")
+        tk.Label(legend,
+                text="Legend :",
+                font=("Helvetica", 12, "bold"),
+                bg=self.colors["bg"]).pack(anchor="w")
 
         legend_items = [
-            ("🟢", "Available"),
-            ("🔴", "Booked with patient"),
-            ("⚫", "Outside working hours")
+            ("🟢", "Available", "#2ecc71"),
+            ("🔴", "Booked", "#e74c3c"),
+            ("🟡", "Urgent", "#f1c40f"),
+            ("⚫", "Not working", "#2c3e50")
         ]
 
-        for icon, text in legend_items:
-            row = tk.Frame(legend_frame, bg=self.colors["bg"])
-            row.pack(anchor="w", pady=2)
+        for ic, txt, cl in legend_items:
+            row = tk.Frame(legend, bg=self.colors["bg"])
+            row.pack(anchor="w")
+            tk.Label(row, text=ic, bg=self.colors["bg"]).pack(side="left", padx=5)
+            tk.Label(row, text=txt, bg=self.colors["bg"]).pack(side="left")
 
-            tk.Label(row,
-                    text=icon,
-                    bg=self.colors["bg"]).pack(side="left", padx=5)
+    def show_appointment_details(self, date, hour, is_urgent_from_map=False):
+            """Fenêtre de détails avec correction du bug d'urgence et sécurité passé"""
+            appointment = AppointmentDAO.get_appointment_by_doctor_date_hour(self.user["id"], date, hour)
+            if not appointment: return
 
-            tk.Label(row,
-                    text=text,
-                    bg=self.colors["bg"]).pack(side="left")
+            popup = tk.Toplevel(self.root)
+            popup.title("Appointment Details")
+            popup.geometry("380x350")
+            popup.configure(padx=20, pady=20)
+
+            appt_dt = appointment['datetime']
+            if isinstance(appt_dt, str): appt_dt = datetime.strptime(appt_dt, "%Y-%m-%d %H:%M:%S")
             
+            is_past = appt_dt < datetime.now()
+            is_urgent = is_urgent_from_map or appointment.get('urgent', False)
 
-    def show_appointment_details(self, date, hour):
+            tk.Label(popup, text="Appointment Details", font=("Helvetica", 14, "bold")).pack(pady=(0, 15))
+            
+            details = [
+                ("Patient", appointment['patient_name']),
+                ("Date", appt_dt.strftime('%d/%m/%Y')),
+                ("Time", appt_dt.strftime('%H:%M')),
+                ("Status", appointment['status']),
+                ("Urgence", "⚡ OUI (Prioritaire)" if is_urgent else "Non")
+            ]
 
-        appointment = AppointmentDAO.get_appointment_by_doctor_date_hour(
-            self.user["id"],
-            date,
-            hour
-        )
+            for label, val in details:
+                row = tk.Frame(popup)
+                row.pack(fill="x", pady=2)
+                tk.Label(row, text=f"{label} :", font=("Helvetica", 10, "bold")).pack(side="left")
+                label_color = "black"
+                if label == "Urgence" and is_urgent: label_color = "#d35400"
+                tk.Label(row, text=val, fg=label_color).pack(side="left", padx=5)
 
-        if not appointment:
-            messagebox.showinfo("Info", "No appointment found.")
-            return
+            tk.Frame(popup, height=1, bg="#ddd").pack(fill="x", pady=15)
 
-        popup = tk.Toplevel(self.root)
-        popup.title("Appointment Details")
-        popup.geometry("350x250")
-
-        tk.Label(
-            popup,
-            text="Appointment Details",
-            font=("Helvetica", 14, "bold")
-        ).pack(pady=10)
-
-        tk.Label(
-            popup,
-            text=f"Patient: {appointment['patient_name']}"
-        ).pack(pady=5)
-
-        tk.Label(
-            popup,
-            text=f"Date: {appointment['datetime'].strftime('%Y-%m-%d')}"
-        ).pack(pady=5)
-
-        tk.Label(
-            popup,
-            text=f"Time: {appointment['datetime'].strftime('%H:%M')}"
-        ).pack(pady=5)
-
-        tk.Label(
-            popup,
-            text=f"Status: {appointment['status']}"
-        ).pack(pady=5)
-
-        tk.Button(
-            popup,
-            text="Cancel Appointment",
-            bg="red",
-            fg="white",
-            command=lambda: self.cancel_appointment_from_popup(
-                appointment["id"],
-                popup
-            )
-        ).pack(pady=15)
-
-
+            if is_past:
+                tk.Label(popup, text=" Consultation terminée (Passée)", fg="gray", font=("Helvetica", 10, "italic")).pack()
+                tk.Label(popup, text="L'annulation n'est plus possible.", fg="gray", font=("Helvetica", 8)).pack()
+            else:
+                tk.Button(
+                    popup, text="Cancel Appointment", bg="red", fg="white", 
+                    relief="flat", pady=8, command=lambda: self.cancel_appointment_from_popup(appointment["id"], popup)
+                ).pack(fill="x", pady=10)
 
     def cancel_appointment_from_popup(self, appointment_id, popup):
 
