@@ -5,7 +5,7 @@
     
     <aside class="dashboard-sidebar">
         <div class="profile-section">
-            <div class="profile-avatar" style="background-color: #e3f2fd; color: #2e7d32;">🩺</div>
+            <div class="profile-avatar" style="background-color: #e3f2fd; color: #2e7d32;">|🩺|</div>
             <h3>Dr. {{ user.name }}</h3>
             <p>Espace Praticien</p>
         </div>
@@ -14,12 +14,12 @@
             <a href="?tab=dashboard" class="{% if tab == 'dashboard' %}active{% endif %}">📊 Accueil</a>
             <a href="?tab=calendar_planner" class="{% if tab == 'calendar_planner' %}active{% endif %}">📅 Créer des disponibilités</a>
             <a href="?tab=weekly_planner" class="{% if tab == 'weekly_planner' %}active{% endif %}">📆 Mon Semainier</a>
-            <a href="/logout" class="logout-link">🚪 Se déconnecter</a>
+            <a href="/logout" class="logout-link"> Se déconnecter</a>
         </nav>
     </aside>
 
     <main class="dashboard-content">
-{% if upcoming_appts %}
+        {% if upcoming_appts %}
             <div class="notifications-container" style="margin-bottom: 25px;">
                 {% for appt in upcoming_appts %}
                     <div class="alert-reminder" style="background-color: #fff3cd; color: #856404; padding: 15px 20px; border-radius: 8px; border-left: 5px solid #ffc107; display: flex; align-items: center; justify-content: space-between; box-shadow: 0 2px 4px rgba(0,0,0,0.05); margin-bottom: 10px;">
@@ -32,6 +32,7 @@
                 {% endfor %}
             </div>
         {% endif %}
+
         {% if tab == 'dashboard' %}
         <div class="dashboard-header welcome-card" style="border-left-color: #4CAF50;">
             <h2>Bienvenue, <span>Dr. {{ user.name.split(' ')[0] }}</span></h2>
@@ -92,13 +93,12 @@
                     {% endfor %}
                 </div>
 
-                <button type="submit" class="btn" style="background-color: #4CAF50; width: 100%;">💾 Enregistrer les disponibilités</button>
+                <button type="submit" class="btn" style="background-color: #4CAF50; width: 100%;">Enregistrer les disponibilités</button>
             </form>
         </div>
         {% endif %}
 
         {% if tab == 'weekly_planner' %}
-       
         <div class="welcome-card" style="padding: 30px;">
             <div class="calendar-header" style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 20px;">
                 <a href="?tab=weekly_planner&week_offset={{ week_offset - 1 }}" class="btn btn-outline" style="padding: 5px 15px;">⬅</a>
@@ -123,35 +123,30 @@
                         <td class="time-cell">{{ "%02d:00" | format(hour) }}</td>
                         {% for d in week_dates %}
                             {% set key = d.strftime('%Y-%m-%d') ~ '-' ~ hour %}
-                            {% if key in slot_map %}
-                                {% set status = slot_map[key] %}
-                                
-                                {% if status == 'booked' or status == 'scheduled' %}
-                                    {% if key in appt_map %}
-    {% set appt = appt_map[key] %}
-        <td class="appt-cell doc-booked js-doc-appt" 
-            data-id="{{ appt.id }}"
-            data-patient="{{ appt.patient_name }}"
-            data-email="{{ appt.patient_email }}"
-            data-phone="{{ appt.patient_phone }}"
-            data-date="{{ appt.date }}"
-            data-time="{{ appt.time_short }}"
-            data-status="{% if appt.is_canceled %}Annulé{% else %}Confirmé{% endif %}"
-            data-future="{{ 'true' if appt.date >= now.strftime('%Y-%m-%d') else 'false' }}">
-            {{ appt.patient_name.split(' ')[0] }}
-        </td>
-{% else %}
-    <td class="appt-cell doc-booked">Réservé</td>
-{% endif %}
-                                {% elif status == 'available' %}
-                                    <td class="appt-cell doc-available js-toggle-slot" 
-                                        data-date="{{ d.strftime('%Y-%m-%d') }}" 
-                                        data-hour="{{ hour }}" 
-                                        style="cursor: pointer;" title="Cliquez pour retirer ce créneau">Libre</td>
-                                {% else %}
-                                    <td class="appt-cell" style="background-color: #f39c12;">Autre</td>
-                                {% endif %}
-
+                            
+                            {% if key in appt_map %}
+                                {# Si un RDV existe (annulé ou non), il est prioritaire sur l'affichage du créneau vide #}
+                                {% set appt = appt_map[key] %}
+                                <td class="appt-cell js-doc-appt 
+                                    {% if appt.is_canceled %}doc-canceled
+                                    {% elif appt.is_urgent %}doc-urgent
+                                    {% else %}doc-booked{% endif %}" 
+                                    data-id="{{ appt.id }}"
+                                    data-patient="{{ appt.patient_name }}"
+                                    data-email="{{ appt.patient_email }}"
+                                    data-phone="{{ appt.patient_phone }}"
+                                    data-date="{{ appt.date_str }}"
+                                    data-time="{{ appt.time_short }}"
+                                    data-status="{{ 'Annulé' if appt.is_canceled else 'Confirmé' }}"
+                                    data-urgent="{{ 'Oui' if appt.is_urgent else 'Non' }}"
+                                    data-cancelable="{{ 'true' if appt.is_cancelable else 'false' }}">
+                                    {{ appt.patient_name.split(' ')[0] }} {% if appt.is_urgent and not appt.is_canceled %}⚡{% endif %}
+                                </td>
+                            {% elif key in slot_map and slot_map[key] == 'available' %}
+                                <td class="appt-cell doc-available js-toggle-slot" 
+                                    data-date="{{ d.strftime('%Y-%m-%d') }}" 
+                                    data-hour="{{ hour }}" 
+                                    style="cursor: pointer;" title="Cliquez pour retirer ce créneau">Libre</td>
                             {% else %}
                                 <td class="empty-cell js-toggle-slot" 
                                     data-date="{{ d.strftime('%Y-%m-%d') }}" 
@@ -168,15 +163,8 @@
                 <span style="font-weight: bold;">Légende :</span>
                 <span><span style="color: #2ecc71;">🟢</span> Disponible</span>
                 <span><span style="color: #e74c3c;">🔴</span> Réservé</span>
-                <span><span style="color: #bdc3c7;">⚫</span> Non travaillé</span>
-            </div>
-            
-            <div id="appointment-details" style="margin-top:20px; padding:15px; border:1px solid #ccc; display:none;">
-                <h3>Détails du rendez-vous</h3>
-                <p><strong>Patient :</strong> <span id="d-patient"></span></p>
-                <p><strong>Téléphone :</strong> <span id="d-phone"></span></p>
-                <p><strong>Date :</strong> <span id="d-date"></span></p>
-                <p><strong>Heure :</strong> <span id="d-time"></span></p>
+                <span><span style="color: #f1c40f;">🟡</span> Urgent</span>
+                <span><span style="color: #95a5a6;">⚪</span> Annulé</span>
             </div>
         </div>
         {% endif %}
@@ -184,153 +172,84 @@
     </main>
 </div>
 
+<!-- MODALE DOC -->
 <div id="docModal" class="modal-overlay">
     <div class="modal-content welcome-card" style="border-top-color: #4CAF50;">
-
         <span class="close-modal" onclick="closeDocModal()">&times;</span>
-
-        <h3 style="font-family: 'Playfair Display'; color: #4a4244;">
+        <h3 style="font-family: 'Playfair Display'; color: #4a4244; margin-bottom: 20px;">
             Détails du Rendez-vous
         </h3>
 
-        <p><strong>Patient :</strong>
-            <span id="docModalPatient" style="color: #4CAF50; font-weight: bold;"></span>
-        </p>
+        <div style="line-height: 1.8;">
+            <p><strong>Patient :</strong> <span id="docModalPatient" style="color: #4CAF50; font-weight: bold;"></span></p>
+            <p><strong>Email :</strong> <span id="docModalEmail"></span></p>
+            <p><strong>Téléphone :</strong> <span id="docModalPhone"></span></p>
+            <p><strong>Date :</strong> <span id="docModalDate"></span> à <span id="docModalTime"></span></p>
+            <p><strong>Urgent :</strong> <span id="docModalUrgent" style="font-weight: bold;"></span></p>
+            <p><strong>Statut :</strong> <span id="docModalStatus" class="badge"></span></p>
 
-        <p><strong>Email :</strong>
-            <span id="docModalEmail"></span>
-        </p>
-
-        <p><strong>Téléphone :</strong>
-            <span id="docModalPhone"></span>
-        </p>
-
-        <p><strong>Date :</strong>
-            <span id="docModalDate"></span>
-        </p>
-
-        <p><strong>Heure :</strong>
-            <span id="docModalTime"></span>
-        </p>
-
-        <p><strong>Statut :</strong>
-            <span id="docModalStatus" class="badge"></span>
-        </p>
-
-        <div id="docCancelContainer" style="margin-top:20px; display:none;">
-            <form id="docCancelForm"
-                  method="POST"
-                  onsubmit="return confirm('Annuler cette consultation ?');">
-
-                <button type="submit"
-                        class="btn btn-cancel"
-                        style="width:100%;">
-                    Annuler cette consultation
-                </button>
-
-            </form>
+            <div id="docCancelContainer" style="margin-top:25px; display:none;">
+                <form id="docCancelForm" method="POST" onsubmit="return confirm('Annuler cette consultation ?');">
+                    <button type="submit" class="btn btn-cancel" style="width:100%;">
+                        Annuler cette consultation
+                    </button>
+                </form>
+            </div>
         </div>
-
     </div>
 </div>
 
 <script>
 document.addEventListener('DOMContentLoaded', function() {
-
     const modal = document.getElementById('docModal');
-    const closeBtn = modal ? modal.querySelector('.close-modal') : null;
     const apptCells = document.querySelectorAll('.js-doc-appt'); 
 
-    if (!modal) {
-        console.error("Modale docModal introuvable !");
-        return;
-    }
-console.log("Nombre de cellules réservées:", apptCells.length);
     function openModal() {
         modal.style.display = 'flex';
         document.body.classList.add('modal-open');
     }
 
-    function closeModal() {
+    window.closeDocModal = function() {
         modal.style.display = 'none';
         document.body.classList.remove('modal-open');
     }
 
-    const toggleCells = document.querySelectorAll('.js-toggle-slot');
-
-    toggleCells.forEach(function(cell) {
+    // Gestion du toggle des créneaux
+    document.querySelectorAll('.js-toggle-slot').forEach(function(cell) {
         cell.addEventListener('click', function() {
             const date = this.dataset.date;
             const hour = this.dataset.hour;
-            const currentCell = this;
-
             fetch('/api/toggle_slot', {
                 method: 'POST',
-                headers: {
-                    'Content-Type': 'application/json'
-                },
+                headers: {'Content-Type': 'application/json'},
                 body: JSON.stringify({ date: date, hour: hour })
             })
             .then(response => response.json())
             .then(data => {
-                if (data.status === "success") {
-                    if (data.action === "added") {
-                        currentCell.className = "appt-cell doc-available js-toggle-slot";
-                        currentCell.style.backgroundColor = ""; 
-                        currentCell.innerText = "Libre";
-                    } 
-                    else if (data.action === "removed") {
-                        currentCell.className = "empty-cell js-toggle-slot";
-                        currentCell.style.backgroundColor = "#fcfcfc";
-                        currentCell.innerText = "";
-                    }
-                    else if (data.action === "booked") {
-                        alert("Ce créneau est déjà réservé par un patient !");
-                    }
-                }
-            })
-            .catch(error => {
-                console.error('Erreur:', error);
-                alert("Une erreur est survenue lors de la modification du créneau.");
+                if (data.status === "success") window.location.reload();
             });
         });
     });
-    window.closeDocModal = closeModal;
 
+    // Gestion de l'affichage des détails du RDV
     apptCells.forEach(function(cell) {
         cell.addEventListener('click', function() {
-            
-            const id = this.dataset.id;
-            const patientName = this.dataset.patient || "Non renseigné";
-            const email = this.dataset.email || "Non renseigné";
-            const phone = this.dataset.phone || "Non renseigné";
-            const date = this.dataset.date || "";
-            const time = this.dataset.time || "";
-            const status = this.dataset.status || "";
+            document.getElementById("docModalPatient").innerText = this.dataset.patient;
+            document.getElementById("docModalEmail").innerText = this.dataset.email;
+            document.getElementById("docModalPhone").innerText = this.dataset.phone;
+            document.getElementById("docModalDate").innerText = this.dataset.date;
+            document.getElementById("docModalTime").innerText = this.dataset.time;
+            document.getElementById("docModalUrgent").innerText = this.dataset.urgent;
 
-            document.getElementById("docModalPatient").innerText = patientName;
-            document.getElementById("docModalEmail").innerText = email;
-            document.getElementById("docModalPhone").innerText = phone;
-            document.getElementById("docModalDate").innerText = date;
-            document.getElementById("docModalTime").innerText = time;
-
+            const status = this.dataset.status;
             const statusEl = document.getElementById("docModalStatus");
             statusEl.innerText = status;
-
-            if (status.toLowerCase().includes("annulé")) {
-                statusEl.className = "badge badge-red";
-            } else {
-                statusEl.className = "badge badge-green";
-            }
+            statusEl.className = status === "Annulé" ? "badge badge-red" : "badge badge-green";
 
             const cancelContainer = document.getElementById("docCancelContainer");
-            const cancelForm = document.getElementById("docCancelForm");
-            
-            const isFuture = this.dataset.future === 'true';
-
-            if (id && !status.toLowerCase().includes("annulé") && isFuture) {
+            if (this.dataset.cancelable === 'true') {
                 cancelContainer.style.display = "block";
-                cancelForm.action = "/doctor_cancel_appt/" + id; 
+                document.getElementById("docCancelForm").action = "/doctor_cancel_appt/" + this.dataset.id;
             } else {
                 cancelContainer.style.display = "none";
             }
@@ -339,114 +258,28 @@ console.log("Nombre de cellules réservées:", apptCells.length);
         });
     });
 
-    if (closeBtn) {
-        closeBtn.addEventListener("click", closeModal);
-    }
-
-    modal.addEventListener("click", function(e) {
-        if (e.target === modal) {
-            closeModal();
-        }
-    });
-
-    document.addEventListener("keydown", function(e) {
-        if (e.key === "Escape" && modal.style.display === 'flex') {
-            closeModal();
-        }
-    });
-
+    window.onclick = function(event) { if (event.target == modal) closeDocModal(); }
 });
 </script>
 
 <style>
-.hidden-checkbox {
-    display: none;
-}
+.hidden-checkbox { display: none; }
+.day-label { display: block; width: 100%; padding: 15px 0; text-align: center; cursor: pointer; background-color: white; transition: 0.2s; }
+.slot-label { padding: 10px 15px; border-radius: 8px; border: 1px solid #e0d5d7; cursor: pointer; background-color: white; color: #6d6875; font-weight: 500; transition: 0.2s; }
+.hidden-checkbox:checked + .day-label, .hidden-checkbox:checked + .slot-label { background-color: #4CAF50; color: white; border-color: #4CAF50; }
 
-.day-label {
-    display: block;
-    width: 100%;
-    padding: 15px 0;
-    text-align: center;
-    cursor: pointer;
-    background-color: white;
-    transition: background-color 0.2s ease;
-}
+.doc-available { background-color: #2ecc71 !important; color: white; }
+.doc-booked { background-color: #e74c3c !important; color: white; cursor: pointer; }
+.doc-urgent { background-color: #f1c40f !important; color: #333 !important; cursor: pointer; border: 2px solid #f39c12; font-weight: bold; }
+.doc-canceled { background-color: #95a5a6 !important; color: white; cursor: pointer; opacity: 0.8; }
 
-.slot-label {
-    padding: 10px 15px;
-    border-radius: 8px;
-    border: 1px solid #e0d5d7;
-    cursor: pointer;
-    background-color: white;
-    color: #6d6875;
-    font-weight: 500;
-    transition: all 0.2s ease;
-}
-
-.hidden-checkbox:checked + .day-label,
-.hidden-checkbox:checked + .slot-label {
-    background-color: #4CAF50;
-    color: white;
-    border-color: #4CAF50;
-}
-
-.doc-available {
-    background-color: #2ecc71 !important; 
-    color: white;
-}
-
-.doc-booked {
-    background-color: #e74c3c !important; 
-    color: white;
-    cursor: pointer;
-}
-
-.doc-booked:hover {
-    background-color: #c0392b !important;
-}
-.modal-overlay {
-    position: fixed;
-    inset: 0;
-    background: rgba(0, 0, 0, 0.55);
-    display: none;
-    justify-content: center;
-    align-items: center;
-    z-index: 9999;
-}
-
-.modal-content {
-    position: relative;
-    max-width: 550px;
-    width: 90%;
-    background: white;
-    border-radius: 20px;
-    padding: 30px;
-    box-shadow: 0 25px 70px rgba(0,0,0,0.35);
-    animation: fadeInDoc 0.25s ease;
-}
-
-@keyframes fadeInDoc {
-    from { opacity: 0; transform: translateY(-15px); }
-    to { opacity: 1; transform: translateY(0); }
-}
-
-.close-modal {
-    position: absolute;
-    top: 15px;
-    right: 20px;
-    font-size: 26px;
-    cursor: pointer;
-    color: #999;
-    transition: 0.2s;
-}
-
-.close-modal:hover {
-    color: #000;
-}
-
-body.modal-open {
-    overflow: hidden;
-}
+.modal-overlay { position: fixed; inset: 0; background: rgba(0, 0, 0, 0.55); display: none; justify-content: center; align-items: center; z-index: 9999; }
+.modal-content { position: relative; max-width: 450px; width: 90%; background: white; border-radius: 20px; padding: 30px; box-shadow: 0 25px 70px rgba(0,0,0,0.3); animation: fadeInDoc 0.25s ease; }
+@keyframes fadeInDoc { from { opacity: 0; transform: translateY(-15px); } to { opacity: 1; transform: translateY(0); } }
+.close-modal { position: absolute; top: 15px; right: 20px; font-size: 26px; cursor: pointer; color: #999; transition: 0.2s; }
+.close-modal:hover { color: #000; }
+.btn-cancel { background-color: white; color: #d9534f; border: 1px solid #d9534f; padding: 10px; border-radius: 10px; cursor: pointer; font-weight: bold; transition: 0.2s; }
+.btn-cancel:hover { background-color: #fdf3f4; }
+body.modal-open { overflow: hidden; }
 </style>
 {% endblock %}
