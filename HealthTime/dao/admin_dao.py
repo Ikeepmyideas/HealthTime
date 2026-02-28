@@ -193,3 +193,66 @@ class AdminDAO:
             conn.rollback()
             conn.close()
             return False, str(e)
+
+
+#---------------------------------------------------
+
+    @staticmethod
+    def get_all_users():
+        conn = get_connection()
+        if not conn: return []
+        try:
+            cursor = conn.cursor(cursor_factory=RealDictCursor)
+            cursor.execute("SELECT id, name, username, role, status FROM users ORDER BY role, name")
+            users = cursor.fetchall()
+            cursor.close()
+            conn.close()
+            return users
+        except Exception as e:
+            if conn: conn.close()
+            return []
+        
+
+    @staticmethod
+    def toggle_user_status(user_id, current_status):
+        new_status = 'inactive' if current_status == 'active' else 'active'
+        conn = get_connection()
+        try:
+            cursor = conn.cursor()
+            cursor.execute("UPDATE users SET status=%s WHERE id=%s", (new_status, user_id))
+            conn.commit()
+            cursor.close()
+            conn.close()
+            return True, f"User is now {new_status}"
+        except Exception as e:
+            if conn: conn.rollback(); conn.close()
+            return False, str(e)
+        
+
+    @staticmethod
+    def add_specialty(name):
+        conn = get_connection()
+        try:
+            cursor = conn.cursor()
+            cursor.execute("INSERT INTO specialties (name) VALUES (%s)", (name,))
+            conn.commit()
+            cursor.close()
+            conn.close()
+            return True, "Specialty added"
+        except Exception as e:
+            if conn: conn.rollback(); conn.close()
+            return False, str(e)
+
+    @staticmethod
+    def delete_specialty(s_id):
+        conn = get_connection()
+        try:
+            cursor = conn.cursor()
+            cursor.execute("DELETE FROM specialties WHERE id=%s", (s_id,))
+            conn.commit()
+            cursor.close()
+            conn.close()
+            return True, "Specialty deleted"
+        except Exception as e:
+            if conn: conn.rollback(); conn.close()
+            return False, "Cannot delete (it may be linked to doctors)"
