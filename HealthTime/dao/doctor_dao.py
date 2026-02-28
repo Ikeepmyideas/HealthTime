@@ -79,17 +79,31 @@ class DoctorDAO:
     @staticmethod
     def create_time_slot_day_hour(doctor_id, slot_date, slot_hour):
         conn = get_connection()
-        cursor = conn.cursor()
+        if not conn:
+            return False, "DB connection error"
 
-        cursor.execute("""
-            INSERT INTO time_slots (doctor_id, slot_date, slot_hour, status)
-            VALUES (%s, %s, %s, 'available')
-            ON CONFLICT DO NOTHING
-        """, (doctor_id, slot_date, slot_hour))
+        try:
+            cursor = conn.cursor()
 
-        conn.commit()
-        cursor.close()
-        conn.close()
+            cursor.execute("""
+                INSERT INTO time_slots (doctor_id, slot_date, slot_hour, status)
+                VALUES (%s, %s, %s, 'available')
+            """, (doctor_id, slot_date, slot_hour))
+
+            conn.commit()
+
+            if cursor.rowcount == 0:
+                return False, "Slot already exists"
+
+            return True, "Slot created"
+
+        except Exception as e:
+            conn.rollback()
+            return False, str(e)
+
+        finally:
+            cursor.close()
+            conn.close()
 
     @staticmethod
     def get_appointment_by_doctor_date_hour(doctor_id, date, hour):
