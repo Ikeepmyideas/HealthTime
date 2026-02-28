@@ -44,22 +44,106 @@ class AppointmentDAO:
             return []
 
     @staticmethod
-    def create_appointment(patient_id, doctor_id, date_str, time_str):
+    def get_available_slots_for_doctor(doctor_id, date):
+        """
+        Retourne les créneaux disponibles pour un docteur spécifique à une date donnée
+        en croisant la table time_slots et la table appointments.
+        """
+        conn = get_connection()
+        if not conn:
+            return []
+
+        try:
+            cursor = conn.cursor()
+            cursor.execute("""
+                SELECT ts.slot_hour
+                FROM time_slots ts
+                WHERE ts.doctor_id = %s
+                AND ts.slot_date = %s
+                AND ts.status = 'available'
+                AND NOT EXISTS (
+                    SELECT 1 FROM appointments a
+                    WHERE a.doctor_id = ts.doctor_id
+                    AND DATE(a.appointment_date) = ts.slot_date
+                    AND EXTRACT(HOUR FROM a.appointment_date) = ts.slot_hour
+                    AND a.status = 'scheduled'
+                )
+                ORDER BY ts.slot_hour
+            """, (doctor_id, date))
+
+            rows = cursor.fetchall()
+            cursor.close()
+            conn.close()
+            return [f"{r[0]:02d}:00" for r in rows]
+        except Exception as e:
+            if conn: conn.close()
+            print(f"Erreur get_available_slots_for_doctor: {e}")
+            return []
+
+    @staticmethod
+    def get_available_slots_by_specialty(specialty_id, date):
+        """
+        RECHERCHE MULTI-DOCTEURS (Option 'Peu importe')
+        Retourne une liste de dictionnaires contenant l'heure, l'ID et le nom du docteur
+        pour tous les praticiens d'une spécialité ayant des créneaux libres.
+        """
+        conn = get_connection()
+        if not conn:
+            return []
+        try:
+            cursor = conn.cursor()
+            query = """
+                SELECT ts.slot_hour, u.id, u.name
+                FROM time_slots ts
+                JOIN users u ON ts.doctor_id = u.id
+                JOIN doctor_specialties ds ON u.id = ds.doctor_id
+                WHERE ds.specialty_id = %s
+                AND ts.slot_date = %s
+                AND ts.status = 'available'
+                AND u.status = 'active'
+                AND NOT EXISTS (
+                    SELECT 1 FROM appointments a
+                    WHERE a.doctor_id = ts.doctor_id
+                    AND DATE(a.appointment_date) = ts.slot_date
+                    AND EXTRACT(HOUR FROM a.appointment_date) = ts.slot_hour
+                    AND a.status = 'scheduled'
+                )
+                ORDER BY ts.slot_hour, u.name
+            """
+            cursor.execute(query, (specialty_id, date))
+            rows = cursor.fetchall()
+            cursor.close()
+            conn.close()
+
+            return [
+                {
+                    "time": f"{r[0]:02d}:00",
+                    "doctor_id": r[1],
+                    "doctor_name": r[2]
+                } for r in rows
+            ]
+        except Exception as e:
+            if conn: conn.close()
+            print(f"Erreur get_available_slots_by_specialty: {e}")
+            return []
+
+
+    @staticmethod
+    def create_appointment(patient_id, doctor_id, date_str, time_str, urgent=False):
+        """Crée un rendez-vous avec gestion optionnelle du flag urgent"""
         conn = get_connection()
         if not conn:
             return False, "Database connection failed"
 
         try:
             cursor = conn.cursor()
+            appointment_datetime = datetime.strptime(f"{date_str} {time_str}", "%Y-%m-%d %H:%M")
 
-            appointment_datetime = datetime.strptime(
-                f"{date_str} {time_str}", "%Y-%m-%d %H:%M"
-            )
-
+            # Note: Assurez-vous que votre table 'appointments' possède la colonne 'urgent' (BOOLEAN)
             cursor.execute("""
-                INSERT INTO appointments (patient_id, doctor_id, appointment_date, status)
-                VALUES (%s, %s, %s, 'scheduled')
-            """, (patient_id, doctor_id, appointment_datetime))
+                INSERT INTO appointments (patient_id, doctor_id, appointment_date, status, urgent)
+                VALUES (%s, %s, %s, 'scheduled', %s)
+            """, (patient_id, doctor_id, appointment_datetime, urgent))
 
             cursor.execute("""
                 UPDATE time_slots
@@ -72,24 +156,22 @@ class AppointmentDAO:
             conn.commit()
             cursor.close()
             conn.close()
-
             return True, "Appointment booked successfully"
-
         except Exception as e:
-            conn.rollback()
-            conn.close()
+            if conn: conn.rollback(); conn.close()
             return False, str(e)
+
 
     @staticmethod
     def get_patient_appointments(patient_id):
-        """Return all appointments for a patient"""
+        """Retourne tous les rendez-vous d'un patient avec le flag urgent"""
         conn = get_connection()
         if not conn:
             return []
         try:
             cursor = conn.cursor()
             cursor.execute("""
-                SELECT a.id, u.name, a.appointment_date, a.status
+                SELECT a.id, u.name, a.appointment_date, a.status, a.urgent
                 FROM appointments a
                 JOIN users u ON a.doctor_id = u.id
                 WHERE a.patient_id=%s
@@ -98,6 +180,7 @@ class AppointmentDAO:
             results = cursor.fetchall()
             cursor.close()
             conn.close()
+            
             appointments = []
             for r in results:
                 appointments.append({
@@ -105,12 +188,14 @@ class AppointmentDAO:
                     "doctor_name": r[1],
                     "date": r[2].strftime("%Y-%m-%d"),
                     "time": r[2].strftime("%H:%M"),
-                    "status": r[3]
+                    "status": r[3],
+                    "urgent": r[4] # Récupération de l'état urgent
                 })
             return appointments
         except:
-            conn.close()
+            if conn: conn.close()
             return []
+        
 
     @staticmethod
     def cancel_appointment(appointment_id, patient_id):
@@ -384,6 +469,7 @@ class AppointmentDAO:
                 SELECT a.id,
                        a.appointment_date,
                        a.status,
+                       a.urgent,
                        u.name,
                        u.username
                 FROM appointments a
@@ -398,10 +484,11 @@ class AppointmentDAO:
                 {
                     "id": r[0],
                     "appointment_date": r[1],
-                    "patient_name": r[3],
-                    "patient_email": r[4], 
-                    "patient_phone": "Non disponible", 
-                    "status": r[2]
+                    "status": r[2],
+                    "urgent": r[3],         
+                    "patient_name": r[4],    
+                    "patient_email": r[5],   
+                    "patient_phone": "Non disponible"
                 }
                 for r in rows
             ]
