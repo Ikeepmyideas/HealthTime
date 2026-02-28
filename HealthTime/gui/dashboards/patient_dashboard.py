@@ -310,11 +310,19 @@ class PatientDashboard:
         self.show_appointments()
 
     def check_appointment_reminder(self):
-        upcoming = self.dao.get_upcoming_appointments(self.user["id"], hours=24)
+        upcoming = self.dao.get_upcoming_appointments(self.user["id"], role="patient", hours=24)
         if upcoming:
             msg = "Appointment Reminder\n\n"
+            today = datetime.now().date()
             for a in upcoming:
-                msg += f"Tomorrow at {a['time']} with Dr {a['doctor_name']}\n"
+                try:
+                    appt_date = datetime.strptime(str(a['date']), "%d/%m/%Y").date()
+                    day_label = "Today" if appt_date == today else "Tomorrow"
+                except Exception:
+                    day_label = "Upcoming"
+                
+                msg += f"• {day_label} at {a['time']} with Dr {a['contact_name']}\n"
+            
             messagebox.showinfo("Reminder", msg)
 
     def toggle_theme(self):
@@ -610,5 +618,6 @@ class PatientDashboard:
 
     def logout(self):
         self.root.destroy()
+
 
 
