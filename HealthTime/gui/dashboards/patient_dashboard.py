@@ -3,6 +3,8 @@ from tkinter import ttk, messagebox
 from tkcalendar import Calendar
 from datetime import datetime
 from dao.appointment_dao import AppointmentDAO
+from dao.admin_dao import AdminDAO
+from dao.user_dao import UserDAO
 from datetime import timedelta
 
 class PatientDashboard:
@@ -14,7 +16,7 @@ class PatientDashboard:
         self.week_offset = 0
 
         self.root.title("HealthTime - Patient")
-        self.root.geometry("1100x650")
+        self.root.geometry("1100x750")
         self.root.minsize(1000, 600)
 
         self.apply_theme()
@@ -30,7 +32,8 @@ class PatientDashboard:
                 "sidebar": "#252526",
                 "text": "#EAEAEA",
                 "accent": "#4FC3F7",
-                "disabled": "#555555"
+                "disabled": "#555555",
+                "urgent": "#FF5252" 
             }
         else:
             self.colors = {
@@ -39,9 +42,9 @@ class PatientDashboard:
                 "sidebar": "#E0E0E0",
                 "text": "#000000",
                 "accent": "#4CAF50",
-                "disabled": "#C0C0C0"
+                "disabled": "#C0C0C0",
+                "urgent": "#D32F2F" 
             }
-
         self.root.configure(bg=self.colors["bg"])
 
 
@@ -56,43 +59,27 @@ class PatientDashboard:
     def build_layout(self):
         for w in self.root.winfo_children():
             w.destroy()
-
         self.sidebar = tk.Frame(self.root, bg=self.colors["sidebar"], width=220)
         self.sidebar.pack(side="left", fill="y")
-
         self.main = tk.Frame(self.root, bg=self.colors["bg"])
         self.main.pack(side="right", fill="both", expand=True)
-
         self.build_sidebar()
 
     def build_sidebar(self):
         def nav_btn(text, cmd):
             return tk.Button(
-                self.sidebar, text=text,
-                bg=self.colors["sidebar"],
-                fg=self.colors["text"],
-                font=("Helvetica", 12),
-                relief="flat",
-                anchor="w",
-                padx=20,
-                command=cmd
+                self.sidebar, text=text, bg=self.colors["sidebar"], fg=self.colors["text"],
+                font=("Helvetica", 12), relief="flat", anchor="w", padx=20, command=cmd
             )
-
-        tk.Label(
-            self.sidebar,
-            text=f"👤 {self.user['name']}",
-            bg=self.colors["sidebar"],
-            fg=self.colors["accent"],
-            font=("Helvetica", 14, "bold")
-        ).pack(pady=25)
-
-        nav_btn("Dashboard", self.show_dashboard).pack(fill="x", pady=5)
-        nav_btn("Book Appointment", self.show_booking).pack(fill="x", pady=5)
-        nav_btn("My Appointments", self.show_appointments).pack(fill="x", pady=5)
-        nav_btn("Weekly Calendar", self.show_weekly_calendar).pack(fill="x", pady=5)
-
-        nav_btn("Toggle Theme", self.toggle_theme).pack(fill="x", pady=20)
-        nav_btn("Logout", self.logout).pack(fill="x", pady=5)
+        tk.Label(self.sidebar, text=f"👤 {self.user['name']}", bg=self.colors["sidebar"],
+                 fg=self.colors["accent"], font=("Helvetica", 14, "bold")).pack(pady=25)
+        nav_btn(" Dashboard", self.show_dashboard).pack(fill="x", pady=5)
+        nav_btn(" Prendre Rendez-vous", self.show_booking).pack(fill="x", pady=5)
+        nav_btn(" Mes Rendez-vous", self.show_appointments).pack(fill="x", pady=5)
+        nav_btn(" Calendrier Hebdo", self.show_weekly_calendar).pack(fill="x", pady=5)
+        tk.Frame(self.sidebar, height=2, bg=self.colors["bg"]).pack(fill="x", pady=20)
+        nav_btn(" Changer Thème", self.toggle_theme).pack(fill="x", pady=5)
+        nav_btn(" Déconnexion", self.logout).pack(fill="x", pady=5)
 
     def clear_main(self):
         for w in self.main.winfo_children():
@@ -100,143 +87,141 @@ class PatientDashboard:
 
     def show_dashboard(self):
         self.clear_main()
-
         card = tk.Frame(self.main, bg=self.colors["card"], padx=40, pady=40)
         card.pack(padx=50, pady=50)
-
-        tk.Label(
-            card,
-            text="Patient Dashboard",
-            font=("Helvetica", 22, "bold"),
-            bg=self.colors["card"],
-            fg=self.colors["accent"]
-        ).pack(pady=10)
-
-        tk.Label(
-            card,
-            text="Manage your medical appointments easily.\nUse the menu on the left.",
-            font=("Helvetica", 13),
-            bg=self.colors["card"],
-            fg=self.colors["text"],
-            justify="center"
-        ).pack()
+        tk.Label(card, text=f"Bienvenue, {self.user['name']}", font=("Helvetica", 22, "bold"),
+                 bg=self.colors["card"], fg=self.colors["accent"]).pack(pady=10)
+        tk.Label(card, text="Gérez vos rendez-vous médicaux en toute simplicité.\nSélectionnez une option dans le menu de gauche.",
+                 font=("Helvetica", 13), bg=self.colors["card"], fg=self.colors["text"], justify="center").pack()
 
     def show_booking(self, appointment=None):
         self.clear_main()
+        card = tk.Frame(self.main, bg=self.colors["card"], padx=25, pady=25)
+        card.pack(fill="both", expand=True, padx=40, pady=20)
 
-        card = tk.Frame(self.main, bg=self.colors["card"], padx=20, pady=20)
-        card.pack(fill="both", expand=True, padx=40, pady=40)
+        title = "Modifier mon rendez-vous" if appointment else "Prendre un nouveau rendez-vous"
+        tk.Label(card, text=title, font=("Helvetica", 18, "bold"), bg=self.colors["card"], fg=self.colors["accent"]).pack(pady=(0, 20))
 
-        tk.Button(card, text="← Back", command=self.show_dashboard).pack(anchor="w")
+        tk.Label(card, text="1. Quelle spécialité recherchez-vous ?", bg=self.colors["card"], fg=self.colors["text"], font=("Helvetica", 11, "bold")).pack(anchor="w")
+        specialties = AdminDAO.get_specialties()
+        self.spec_map = {s["name"]: s["id"] for s in specialties}
+        
+        self.spec_combo = ttk.Combobox(card, state="readonly", values=list(self.spec_map.keys()), font=("Helvetica", 10))
+        self.spec_combo.pack(fill="x", pady=(5, 15))
+        self.spec_combo.bind("<<ComboboxSelected>>", self.on_specialty_selected)
 
-        title = "Modify Appointment" if appointment else "Book an Appointment"
-        tk.Label(
-            card, text=title,
-            font=("Helvetica", 18, "bold"),
-            bg=self.colors["card"],
-            fg=self.colors["accent"]
-        ).pack(pady=10)
+        tk.Label(card, text="2. Choisissez un praticien spécifique", bg=self.colors["card"], fg=self.colors["text"], font=("Helvetica", 11, "bold")).pack(anchor="w")
+        self.doc_combo = ttk.Combobox(card, state="disabled", font=("Helvetica", 10))
+        self.doc_combo.pack(fill="x", pady=(5, 15))
+        self.doc_combo.set("Sélectionnez d'abord une spécialité")
 
-        tk.Label(card, text="Doctor", bg=self.colors["card"], fg=self.colors["text"]).pack(anchor="w")
-        doctors = self.dao.get_active_doctors()
-        self.doctor_map = {d["name"]: d["id"] for d in doctors}
-        self.doctor_combo = ttk.Combobox(card, state="readonly", values=list(self.doctor_map.keys()))
-        self.doctor_combo.pack(fill="x", pady=5)
-
-        if doctors:
-            if appointment:
-                self.doctor_combo.set(appointment["doctor_name"])
-            else:
-                self.doctor_combo.current(0)
-
-        tk.Label(card, text="Date", bg=self.colors["card"], fg=self.colors["text"]).pack(anchor="w")
-        today = datetime.today()
-
-        self.cal = Calendar(
-            card,
-            selectmode="day",
-            date_pattern="yyyy-mm-dd",
-            mindate=today
-        )
+        config_frame = tk.Frame(card, bg=self.colors["card"])
+        config_frame.pack(fill="x", pady=10)
+        
+        cal_container = tk.Frame(config_frame, bg=self.colors["card"])
+        cal_container.pack(side="left")
+        tk.Label(cal_container, text="3. Choisissez une date", bg=self.colors["card"], font=("Helvetica", 11, "bold")).pack(anchor="w")
+        self.cal = Calendar(cal_container, selectmode="day", date_pattern="yyyy-mm-dd", mindate=datetime.today())
         self.cal.pack(pady=5)
 
-        if appointment:
-            appt_date = datetime.strptime(appointment["date"], "%Y-%m-%d")
-            self.cal.selection_set(appt_date)
+        opt_container = tk.Frame(config_frame, bg=self.colors["card"], padx=30)
+        opt_container.pack(side="left", fill="y", pady=20)
+        
+        self.urgent_var = tk.BooleanVar(value=False)
+        tk.Checkbutton(opt_container, text="⚡ C'est une urgence", variable=self.urgent_var, 
+                       bg=self.colors["card"], fg=self.colors["urgent"], font=("Helvetica", 12, "bold"),
+                       activebackground=self.colors["card"]).pack(anchor="w")
+        tk.Label(opt_container, text="Les rendez-vous urgents sont prioritaires\ndans l'agenda du médecin.", 
+                 bg=self.colors["card"], fg="gray", font=("Helvetica", 9, "italic"), justify="left").pack(anchor="w", pady=5)
 
-        tk.Button(
-            card,
-            text="Afficher les créneaux",
-            bg=self.colors["accent"],
-            fg="white",
-            command=lambda: self.show_slots(card, appointment)
-        ).pack(pady=10)
+        tk.Button(card, text="Rechercher des créneaux disponibles", bg=self.colors["accent"], fg="white",
+                  command=lambda: self.show_slots(card, appointment), font=("Helvetica", 11, "bold"), pady=10).pack(pady=20)
 
         self.slots_container = tk.Frame(card, bg=self.colors["card"])
         self.slots_container.pack(fill="both", expand=True)
+
+
+    def on_specialty_selected(self, event):
+        spec_name = self.spec_combo.get()
+        spec_id = self.spec_map[spec_name]
+        
+        doctors = UserDAO.search_doctors_by_specialty(spec_id)
+        self.doctor_map = {d["name"]: d["id"] for d in doctors}
+        
+        doc_options = ["Peu importe (Premier disponible)"] + list(self.doctor_map.keys())
+        self.doc_combo.config(state="readonly", values=doc_options)
+        self.doc_combo.current(0)
 
     def show_slots(self, parent, appointment):
         for w in self.slots_container.winfo_children():
             w.destroy()
 
-        doctor_id = self.doctor_map.get(self.doctor_combo.get())
-        date_str = self.cal.get_date()
-        date = datetime.strptime(date_str, "%Y-%m-%d").date()
-
-        print("DEBUG DOCTOR:", doctor_id)
-        print("DEBUG DATE:", date)
-
-        available_slots = self.dao.get_available_slots_for_doctor(doctor_id, date)
-
-        print("DEBUG AVAILABLE SLOTS:", available_slots)
-
-        if not available_slots:
-            tk.Label(
-                self.slots_container,
-                text="No available slots for this date",
-                bg=self.colors["card"],
-                fg="red"
-            ).pack()
+        spec_name = self.spec_combo.get()
+        if not spec_name:
+            messagebox.showwarning("Attention", "Veuillez choisir une spécialité")
             return
 
-        row = None
+        doc_choice = self.doc_combo.get()
+        date_str = self.cal.get_date()
+        date_obj = datetime.strptime(date_str, "%Y-%m-%d").date()
+        spec_id = self.spec_map[spec_name]
 
-        for i, slot in enumerate(available_slots):
+        if doc_choice == "Peu importe (Premier disponible)":
+            available_slots = self.dao.get_available_slots_by_specialty(spec_id, date_obj)
+            doctor_id = "any"
+        else:
+            doctor_id = self.doctor_map.get(doc_choice)
+            available_slots = self.dao.get_available_slots_for_doctor(doctor_id, date_obj)
 
-            if i % 4 == 0:
-                row = tk.Frame(self.slots_container, bg=self.colors["card"])
-                row.pack(pady=5)
+        now = datetime.now()
+        if date_obj == now.date():
+            current_time = now.strftime("%H:%M")
+            available_slots = [
+                s for s in available_slots 
+                if (s["time"] if isinstance(s, dict) else s) > current_time
+            ]
 
-            tk.Button(
-                row,
-                text=slot,
-                width=8,
-                bg=self.colors["accent"],
-                fg="white",
-                relief="flat",
-                command=lambda s=slot: self.book_slot(
-                    doctor_id,
-                    date,
-                    s,
-                    appointment
-                )
-            ).pack(side="left", padx=5)
+        if not available_slots:
+            tk.Label(self.slots_container, text="Aucun créneau disponible pour cette sélection.", 
+                     bg=self.colors["card"], fg=self.colors["urgent"], font=("Helvetica", 11, "bold")).pack(pady=10)
+            return
 
+        tk.Label(self.slots_container, text="Sélectionnez un horaire :", bg=self.colors["card"], font=("Helvetica", 10, "bold")).pack(anchor="w")
+        
+        grid_frame = tk.Frame(self.slots_container, bg=self.colors["card"])
+        grid_frame.pack(pady=10, fill="x")
+
+        for i, slot_data in enumerate(available_slots):
+            if isinstance(slot_data, dict):
+                slot_time = slot_data["time"]
+                current_doc_id = slot_data["doctor_id"]
+                btn_text = f"{slot_time}\n(Dr {slot_data['doctor_name']})"
+            else:
+                slot_time = slot_data
+                current_doc_id = doctor_id
+                btn_text = slot_time
+
+            tk.Button(grid_frame, text=btn_text, width=15, height=2, bg=self.colors["accent"], fg="white", relief="flat",
+                      font=("Helvetica", 9), command=lambda t=slot_time, d=current_doc_id: self.book_slot(d, date_obj, t, appointment)).grid(row=i//4, column=i%4, padx=5, pady=5)
 
     def book_slot(self, doctor_id, date, time, appointment):
+        now = datetime.now()
+        if date < now.date() or (date == now.date() and time <= now.strftime("%H:%M")):
+            messagebox.showerror("Erreur", "Vous ne pouvez pas réserver un créneau déjà passé.")
+            return
+
+        is_urgent = self.urgent_var.get()
         if appointment:
-            success, msg = self.dao.modify_appointment(
-                appointment["id"], doctor_id, date, time
-            )
+            success, msg = self.dao.modify_appointment(appointment["id"], doctor_id, date, time, urgent=is_urgent)
         else:
-            success, msg = self.dao.create_appointment(
-                self.user["id"], doctor_id, date, time
-            )
+            success, msg = self.dao.create_appointment(self.user["id"], doctor_id, date, time, urgent=is_urgent)
 
         if success:
+            messagebox.showinfo("Succès", "Rendez-vous enregistré !")
             self.show_appointments()
         else:
-            messagebox.showerror("Error", msg)
+            messagebox.showerror("Erreur", msg)
+
 
     def show_appointments(self):
         self.clear_main()
